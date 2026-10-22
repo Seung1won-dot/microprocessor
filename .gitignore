@@ -4,10 +4,7 @@
 # 저장소에 올릴 파일만 예외로 허용
 !.gitignore
 !README.md
-!팀원필독.pdf
-!캡스톤디자인_팀노트.pdf
-!앞으로_할일.pdf
-!구현계획_1003.pdf
 !docs/
-!docs/*.md
-!캡스톤_정리.md
+!docs/**/
+!docs/**/*.md
+!docs/**/*.pdf
