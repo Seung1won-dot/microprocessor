@@ -105,6 +105,7 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .kpi small{display:block;font-size:14px;color:var(--muted)}
 .kpi b{display:block;font-size:24px;line-height:32px;font-weight:600;margin:4px 0 2px;word-break:keep-all}
 .kpi p{margin:0;font-size:12px;line-height:16px;color:var(--muted);word-break:keep-all}
+.kpi p.kpi-note{margin-top:4px;color:var(--faint)}
 
 /* ── 예측 그래프 ── */
 .legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);margin-top:12px}
@@ -288,7 +289,7 @@ footer svg{flex:none}
       <div class="kpis">
         <div class="kpi"><small>빈 자리</small><b id="seatMain" class="tnum dash">—</b><p id="seatSub">&nbsp;</p></div>
         <div class="kpi"><small>식당 예상 인원</small><b id="peopleMain" class="tnum dash">—</b><p>&nbsp;</p></div>
-        <div class="kpi"><small>주문 대기 (키오스크)</small><b id="kioskMain" class="tnum dash">—</b><p id="kioskSub">&nbsp;</p></div>
+        <div class="kpi"><small>주문 대기 (키오스크)</small><b id="kioskMain" class="tnum dash">—</b><p id="kioskSub">&nbsp;</p><p class="kpi-note" id="kioskNote">19:00부터는 키오스크 카메라가 꺼져 알 수 없어요</p></div>
       </div>
     </section>
 
@@ -504,9 +505,10 @@ function renderLatest(d){
     $("occ").hidden = true;
   }
   const k = d.kiosk;
+  $("kioskNote").hidden = nowHM() >= KIOSK_OFF;
   if (d.open && ok && nowHM() >= KIOSK_OFF){
     setVal("kioskMain", null); $("kioskMain").style.color = "";
-    $("kioskSub").textContent = `키오스크 카메라는 ${KIOSK_OFF}에 꺼져요`;
+    $("kioskSub").textContent = `${KIOSK_OFF}부터는 키오스크 카메라가 꺼져 알 수 없어요`;
   } else if (d.open && ok && k && k.people != null){
     setVal("kioskMain", k.queue <= 0 ? "바로 주문" : `약 ${Math.max(1, Math.round(k.wait_min))}분`);
     $("kioskSub").textContent = k.queue <= 0 ? `줄 없음 · 키오스크 앞 ${k.people}명` : `줄 ${k.queue}명 · 1분에 약 ${k.rate}명씩 줄어요`;
