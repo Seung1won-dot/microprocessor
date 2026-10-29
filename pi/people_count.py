@@ -557,65 +557,87 @@ app = Flask(__name__)
 PAGE = """<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><title>학생회관 1층 식당 · 실시간 인원 감지</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{if(new URLSearchParams(location.search).get("dark")==="1"||localStorage.getItem("theme")==="dark")document.documentElement.dataset.dark="1";}catch(e){}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
-/* 디자인: 혼잡도 웹과 같은 규칙 (평평한 면, 1px 테두리, 글자 12/14/16/24, 상태색은 숫자에만) */
-:root{--bg:#0a0a0a;--card:#141414;--line:#262626;--fg:#f2f2f2;--muted:#a6a6a6;--faint:#787878;
---data:#5b9bea;--ok:#3fc07a;--warn:#f0b452;--busy:#e5566f;--r:10px}
+/* patch_admin_theme v1 — 학생용 혼잡도 웹과 같은 색·글자·간격 규칙 (밝은/어두운 화면) */
+:root{--ground:#f6f7f9;--surface:#fff;--raised:#f7f8fa;--active:#eef0f3;--border:#e6e8eb;--rule:#eef0f2;--control:#d1d5db;
+--text:#111418;--muted:#5f6368;--faint:#6b6f76;--data:#2f6db5;--data-tint:rgba(47,109,181,.12);
+--ok:#247b50;--ok-fill:#2f9e63;--ok-bg:#e4f4ea;--mid:#92400e;--mid-bg:#fdf3e1;--warn:var(--mid);--busy:#c4242a;--busy-bg:#fdeaea;--on-data:#fff;
+--r-card:8px;--r-ctl:6px;--ease-out:cubic-bezier(.23,1,.32,1)}
+html[data-dark]{color-scheme:dark;--ground:#0a0a0a;--surface:#141414;--raised:#1b1b1b;--active:#262626;--border:#262626;--rule:#202020;--control:#464646;
+--text:#f2f2f2;--muted:#b0b0b0;--faint:#8f8f8f;--data:#5b9bea;--data-tint:rgba(91,155,234,.16);
+--ok:#4cc584;--ok-fill:#3fc07a;--ok-bg:#15291c;--mid:#f0b452;--mid-bg:#2b2213;--busy:#ef6a7f;--busy-bg:#2c161a;--on-data:#0b0b0b}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
-b,#clock,#temp,.card,.cnt{font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--text);font-family:Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border)}
+.topbar .in{max-width:1600px;height:100%;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.mark{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:var(--text);text-decoration:none;white-space:nowrap}
+.mark svg{color:var(--data);flex:none}
+.mark span{font-weight:400;color:var(--muted);font-size:14px;margin-left:6px}
+.top-right{display:flex;align-items:center;gap:8px}
+.pill{height:28px;display:inline-flex;align-items:center;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--raised);color:var(--muted);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pill:empty{display:none}
+button{height:32px;padding:0 12px;border:1px solid var(--control);border-radius:var(--r-ctl);background:var(--surface);color:var(--text);cursor:pointer;
+  font:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:transform 160ms var(--ease-out),background-color 150ms ease}
+button:hover{background:var(--raised)}
+button:active{transform:scale(.97)}
+button:focus-visible{outline:2px solid var(--data);outline-offset:2px}
+.btn-icon{width:32px;padding:0;justify-content:center;color:var(--muted)}
+#themeBtn .sun{display:none}
+html[data-dark] #themeBtn .sun{display:block}
+html[data-dark] #themeBtn .moon{display:none}
 .wrap{max-width:1600px;margin:0 auto;padding:24px 24px 32px}
-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
-.brand{display:flex;gap:12px;align-items:flex-start}
-.brand svg{color:var(--data);flex:none;margin-top:4px}
 h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01em}
-.sub{color:var(--muted);font-size:14px;margin-top:4px}
-.status{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);white-space:nowrap;padding-top:4px}
-.status .pill{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px}
-.summary{display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:16px;overflow:hidden}
-.summary .card{padding:16px 20px 18px;min-width:0}
-.summary .card+.card{border-left:1px solid var(--line)}
-.card small{display:block;color:var(--muted);font-size:12px;line-height:16px}
-.card b{display:block;font-size:24px;font-weight:600;letter-spacing:-.01em;line-height:32px;margin:4px 0 2px}
+a{color:var(--data)}
+.title-row{margin-bottom:20px}
+.title-row p{margin:4px 0 0;color:var(--muted)}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);margin-bottom:16px;overflow:hidden}
+.summary .card{padding:20px 24px 22px;min-width:0}
+.summary .card+.card{border-left:1px solid var(--border)}
+.card small{display:block;color:var(--muted);font-size:14px;line-height:20px}
+.card b{display:block;font-size:24px;font-weight:600;letter-spacing:-.01em;line-height:32px;margin:4px 0 2px;font-variant-numeric:tabular-nums}
 .card span{font-size:12px;line-height:16px;color:var(--muted)}
-.card.ok b{color:var(--ok)}.card.warn b{color:var(--warn)}.card.busy b{color:var(--busy)}
+.card.ok b{color:var(--ok)}.card.warn b{color:var(--mid)}.card.busy b{color:var(--busy)}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.cam{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-width:0}
-.camhead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.camhead b{font-size:14px;font-weight:600}
-.role{background:rgba(91,155,234,.14);color:#9fc3ff;border-radius:6px;padding:2px 8px;font-size:12px;font-weight:600}
-.role.kiosk{background:rgba(240,180,82,.14);color:#f0c478}
-.cnt{margin-left:auto;color:var(--muted);font-size:13px}
-.cnt b{color:var(--fg);font-weight:600}
+.cam{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:16px;min-width:0}
+.camhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.camhead b{font-size:16px;font-weight:600}
+.role{background:var(--data-tint);color:var(--data);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600}
+.role.kiosk{background:var(--mid-bg);color:var(--mid)}
+.cnt{margin-left:auto;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.cnt b{color:var(--text);font-size:inherit;font-weight:600}
 .box{position:relative;width:100%}
-.box img{width:100%;aspect-ratio:16/9;object-fit:fill;display:block;border-radius:8px;background:#000}
+.box img{width:100%;aspect-ratio:16/9;object-fit:fill;display:block;border-radius:6px;background:#000}
 .box canvas{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
 body.edit .box canvas{pointer-events:auto;cursor:crosshair}
-.tools{display:none;margin-top:10px}
-body.edit .tools{display:block}
-button{margin:0 6px 0 0;padding:0 12px;height:30px;border:1px solid #2e2e2e;border-radius:6px;background:#1e1e1e;color:var(--fg);cursor:pointer;font:inherit;font-size:13px;font-weight:600}
-button:hover{background:#262626}
-button:active{transform:scale(.97)}
+.tools{display:none;margin-top:12px}
+body.edit .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .msg{font-size:13px;color:var(--ok);margin-left:4px}
-footer{display:flex;align-items:center;gap:14px;margin-top:20px;color:var(--muted);font-size:12px;line-height:16px}
-footer a{color:var(--data)}
+footer{display:flex;align-items:center;gap:16px;margin-top:20px;color:var(--muted);font-size:12px;line-height:16px}
+footer a{text-decoration:none;font-weight:600;white-space:nowrap}
 footer a.tables{display:none}
 body.edit footer a.tables{display:inline}
 footer .sp{flex:1}
-#editbtn{background:transparent;border:1px solid var(--line);color:var(--muted)}
-body.edit #editbtn{border-color:var(--data);color:var(--data)}
-@media (max-width:1100px){.summary{grid-template-columns:repeat(2,1fr)}.summary .card:nth-child(3){border-left:0}.summary .card:nth-child(n+3){border-top:1px solid var(--line)}.grid{grid-template-columns:1fr}h1{font-size:20px;line-height:28px}}
+#editbtn{color:var(--muted)}
+body.edit #editbtn{border-color:var(--data);color:var(--data);background:var(--data-tint)}
+@media (max-width:1100px){.summary{grid-template-columns:repeat(2,1fr)}.summary .card:nth-child(3){border-left:0}.summary .card:nth-child(n+3){border-top:1px solid var(--border)}
+  .grid{grid-template-columns:1fr}.mark span{display:none}footer{flex-wrap:wrap}}
 </style></head><body>
+<div class="topbar"><div class="in">
+  <a class="mark" href="/"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>밥먹을래말래<span>관리 화면 · 실시간 인원 감지</span></a>
+  <div class="top-right"><span class="pill" id="mode">-</span><span class="pill" id="temp"></span><span class="pill" id="clock"></span>
+    <button class="btn-icon" id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면 전환">
+      <svg class="moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+      <svg class="sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button></div>
+</div></div>
 <div class="wrap">
-<header>
-  <div class="brand">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>
-    <div><h1>학생회관 1층 식당 · 실시간 인원 감지</h1>
-    <div class="sub">밥먹을래말래 관리 화면 · 영상은 저장하지 않고 사람 수만 기록해요 · 초록 박스 집계 · 회색 박스 제외</div></div>
-  </div>
-  <div class="status"><span class="pill" id="mode">-</span><span class="pill" id="temp"></span><span class="pill" id="clock"></span></div>
-</header>
+<div class="title-row">
+  <h1>학생회관 1층 식당 · 카메라 4대</h1>
+  <p>영상은 저장하지 않고 사람 수만 기록해요 · 초록 박스는 집계, 회색 박스는 제외</p>
+</div>
 <section class="summary">
   <div class="card"><small>좌석 구역 인원</small><b id="s-people">-</b><span id="s-people-sub">좌석 카메라 영역 안</span></div>
   <div class="card" id="c-free"><small>완전히 빈 자리</small><b id="s-free">-</b><span id="s-free-sub">자리 등록 전</span></div>
@@ -628,7 +650,7 @@ body.edit #editbtn{border-color:var(--data);color:var(--data)}
   <span class="sp"></span>
   <a href="http://<맥미니 Tailscale IP>:8000" target="_blank" rel="noopener">학생용 혼잡도 화면 →</a>
   <a class="tables" href="/tables">테이블 영역 설정 →</a>
-  <button id="editbtn" onclick="toggleEdit()">설정 모드</button>
+  <button id="editbtn" type="button" onclick="toggleEdit()">설정 모드</button>
 </footer>
 </div>
 <script>
@@ -720,6 +742,12 @@ async function update(){
   const n = new Date();
   document.getElementById('clock').textContent = n.toLocaleDateString('ko-KR', {month: 'long', day: 'numeric', weekday: 'short'}) + ' ' + n.toTimeString().slice(0, 5);
 }
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const h = document.documentElement, dark = !h.dataset.dark;
+  if (dark) h.dataset.dark = '1'; else delete h.dataset.dark;
+  document.getElementById('themeBtn').setAttribute('aria-label', dark ? '밝은 화면으로 전환' : '어두운 화면으로 전환');
+  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+});
 setInterval(update, 1000); update();
 </script></body></html>
 """
@@ -786,40 +814,78 @@ def set_zone(name):
 TABLE_PAGE = r"""<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><title>테이블 영역 설정</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{if(new URLSearchParams(location.search).get("dark")==="1"||localStorage.getItem("theme")==="dark")document.documentElement.dataset.dark="1";}catch(e){}</script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
- body{font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;margin:16px;background:#111;color:#eee}
- a{color:#8cf}
- h1{font-size:22px;margin:0 0 6px}
- .help{color:#aaa;font-size:14px;line-height:1.6;margin-bottom:12px;max-width:1100px}
- .tabs button{margin:0 6px 8px 0}
- .layout{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
- .box{position:relative;width:min(1100px,100%)}
- .box img{width:100%;aspect-ratio:16/9;display:block;border-radius:8px;background:#222;object-fit:fill}
- .box canvas{position:absolute;left:0;top:0;width:100%;height:100%;cursor:crosshair}
- .side{flex:1;min-width:260px;max-width:360px}
- .panel{background:#1c1c1c;border-radius:10px;padding:12px;margin-bottom:12px}
- .panel h3{margin:0 0 8px;font-size:15px}
- label{font-size:14px;margin-right:8px}
- select,input[type=number]{background:#222;color:#eee;border:1px solid #444;border-radius:6px;padding:5px 6px;font-size:14px}
- input[type=number]{width:56px}
- button{margin:6px 6px 0 0;padding:6px 10px;border:0;border-radius:6px;background:#333;color:#eee;cursor:pointer;font-size:14px}
- button:hover{background:#444}
- button.on{background:#2f6db5}
- button.primary{background:#2e8b57}
- .msg{font-size:13px;color:#8f8;min-height:18px;margin-top:6px}
- .warn{color:#fc6}
- table{width:100%;border-collapse:collapse;font-size:13px}
- td{padding:4px 2px;border-bottom:1px solid #2a2a2a}
- td.r{text-align:right}
- .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:0}
- .stat{font-size:13px;color:#aaa}
+:root{--ground:#f6f7f9;--surface:#fff;--raised:#f7f8fa;--active:#eef0f3;--border:#e6e8eb;--rule:#eef0f2;--control:#d1d5db;
+--text:#111418;--muted:#5f6368;--faint:#6b6f76;--data:#2f6db5;--data-tint:rgba(47,109,181,.12);
+--ok:#247b50;--ok-fill:#2f9e63;--ok-bg:#e4f4ea;--mid:#92400e;--mid-bg:#fdf3e1;--warn:var(--mid);--busy:#c4242a;--busy-bg:#fdeaea;--on-data:#fff;
+--r-card:8px;--r-ctl:6px;--ease-out:cubic-bezier(.23,1,.32,1)}
+html[data-dark]{color-scheme:dark;--ground:#0a0a0a;--surface:#141414;--raised:#1b1b1b;--active:#262626;--border:#262626;--rule:#202020;--control:#464646;
+--text:#f2f2f2;--muted:#b0b0b0;--faint:#8f8f8f;--data:#5b9bea;--data-tint:rgba(91,155,234,.16);
+--ok:#4cc584;--ok-fill:#3fc07a;--ok-bg:#15291c;--mid:#f0b452;--mid-bg:#2b2213;--busy:#ef6a7f;--busy-bg:#2c161a;--on-data:#0b0b0b}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--text);font-family:Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased}
+.topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border)}
+.topbar .in{max-width:1600px;height:100%;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.mark{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:var(--text);text-decoration:none;white-space:nowrap}
+.mark svg{color:var(--data);flex:none}
+.mark span{font-weight:400;color:var(--muted);font-size:14px;margin-left:6px}
+.top-right{display:flex;align-items:center;gap:8px}
+.pill{height:28px;display:inline-flex;align-items:center;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--raised);color:var(--muted);font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pill:empty{display:none}
+button{height:32px;padding:0 12px;border:1px solid var(--control);border-radius:var(--r-ctl);background:var(--surface);color:var(--text);cursor:pointer;
+  font:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:transform 160ms var(--ease-out),background-color 150ms ease}
+button:hover{background:var(--raised)}
+button:active{transform:scale(.97)}
+button:focus-visible{outline:2px solid var(--data);outline-offset:2px}
+.btn-icon{width:32px;padding:0;justify-content:center;color:var(--muted)}
+#themeBtn .sun{display:none}
+html[data-dark] #themeBtn .sun{display:block}
+html[data-dark] #themeBtn .moon{display:none}
+.wrap{max-width:1600px;margin:0 auto;padding:24px 24px 32px}
+h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01em}
+a{color:var(--data)}
+.help{color:var(--muted);line-height:1.6;margin:4px 0 16px;max-width:1100px}
+.help b{color:var(--text)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.layout{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.box{position:relative;width:min(1100px,100%)}
+.box img{width:100%;aspect-ratio:16/9;display:block;border-radius:6px;background:#000;object-fit:fill}
+.box canvas{position:absolute;left:0;top:0;width:100%;height:100%;cursor:crosshair}
+.side{flex:1;min-width:260px;max-width:360px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:16px;margin-bottom:12px}
+.panel h3{margin:0 0 10px;font-size:15px;font-weight:600}
+.panel button{margin:8px 6px 0 0}
+label{font-size:14px;margin-right:8px}
+select,input[type=number]{background:var(--surface);color:var(--text);border:1px solid var(--control);border-radius:var(--r-ctl);height:32px;padding:0 8px;font:inherit}
+input[type=number]{width:64px}
+button.on{background:var(--data);border-color:var(--data);color:var(--on-data)}
+button.primary{background:var(--ok-fill);border-color:var(--ok-fill);color:#fff}
+.msg{font-size:13px;color:var(--ok);min-height:18px;margin-top:8px}
+.warn{color:var(--mid)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td{padding:6px 2px;border-bottom:1px solid var(--rule)}
+td button{height:28px;margin:0}
+td.r{text-align:right}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:0}
+.stat{font-size:13px;color:var(--muted)}
 </style></head><body>
+<div class="topbar"><div class="in">
+  <a class="mark" href="/"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>밥먹을래말래<span>관리 화면 · 테이블 영역 설정</span></a>
+  <div class="top-right"><a class="pill" href="/" style="text-decoration:none">← 카메라 화면</a>
+    <button class="btn-icon" id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면 전환">
+      <svg class="moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+      <svg class="sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button></div>
+</div></div>
+<div class="wrap">
 <h1>테이블 영역 설정</h1>
 <div class="help">
  <b>기준: 테이블 1개 + 의자 2개 = 자리 1개(T번호, 2석)</b>, 1인석은 S번호(1석)예요. 자리마다 <b>의자까지 포함해서</b> 꼭짓점을 3~8개 찍고 [테이블 추가]를 누르세요. 바로 저장되고 다음 번호가 자동으로 선택돼요. 두 카메라에 같은 자리가 보이면 <b>같은 번호</b>로 찍으세요.
  화면에 일부만 보이면 "일부만 보임"을 체크하세요. 같은 번호를 여러 카메라에 찍어도 되고, 나중에 담당 카메라를 정해요.
  이 화면은 인원 계산에 영향을 주지 않아요. 운영 시간이면 사람 위치(흰 점)와 테이블별 감지 인원이 함께 보여요.
- <a href="/">← 카메라 화면으로</a>
 </div>
 <div class="tabs" id="tabs"></div>
 <div class="layout">
@@ -991,7 +1057,13 @@ function snap(){
 snap(); setInterval(snap, 1000);
 ping(); setInterval(ping, 60000);
 loadTables(); loadLast(); setInterval(loadLast, 3000);
-</script></body></html>
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const h = document.documentElement, dark = !h.dataset.dark;
+  if (dark) h.dataset.dark = '1'; else delete h.dataset.dark;
+  document.getElementById('themeBtn').setAttribute('aria-label', dark ? '밝은 화면으로 전환' : '어두운 화면으로 전환');
+  try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+});
+</script></div></body></html>
 """
 
 

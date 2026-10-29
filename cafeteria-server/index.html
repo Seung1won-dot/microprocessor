@@ -119,25 +119,32 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .plot{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px}
 .yaxis{position:relative;height:224px}
 .yaxis span{position:absolute;right:0;transform:translateY(50%);font-size:12px;color:var(--muted)}
-.area{position:relative;height:224px;border-bottom:1px solid var(--faint)}
+.area{position:relative;height:224px;border-bottom:1px solid var(--faint);overflow:hidden;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.area.drag{cursor:grabbing}
 .gl{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--rule)}
-.bars{position:absolute;inset:0;display:flex;gap:8px}
-.col{flex:1;position:relative;min-width:0;cursor:pointer}
-.col::before{content:"";position:absolute;inset:0 -4px;border-radius:4px;background:transparent;transition:background-color 120ms ease}
+.bars{position:absolute;top:0;bottom:0;left:0;display:flex;will-change:transform}
+.col{flex:none;position:relative;height:100%}
+.col::before{content:"";position:absolute;inset:0 2px;border-radius:4px;background:transparent;transition:background-color 120ms ease}
 .col.on::before{background:var(--grid-ink)}
-.avg{position:absolute;left:-2px;right:-2px;height:0;border-top:2px solid var(--text);opacity:.55;pointer-events:none}
+.avg{position:absolute;left:3px;right:3px;height:0;border-top:2px solid var(--text);opacity:.5;pointer-events:none;
+  bottom:calc(var(--v) / var(--top) * 100%);transition:bottom 250ms var(--ease-out)}
 .tip{position:absolute;top:0;z-index:2;min-width:132px;padding:8px 12px;border-radius:var(--r-ctl);background:var(--text);color:var(--surface);
   font-size:12px;line-height:18px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.16)}
 .tip b{display:block;font-size:13px;font-weight:600}
 .tip span{display:block;opacity:.8}
-.bar{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0;min-height:2px;background:var(--data-2)}
+.area{--top:100}
+.bar{position:absolute;left:5px;right:5px;bottom:0;border-radius:3px 3px 0 0;min-height:2px;background:var(--data-2);
+  height:min(100%, calc(var(--v) / var(--top) * 100%));transition:height 250ms var(--ease-out)}
 .bar.now{background:var(--data)}
 .bar.fc{background:var(--data-tint);border:1px dashed var(--data);border-bottom:0}
-.bar.none{display:none}
-.band{position:absolute;left:0;right:0;background:var(--grid-ink);pointer-events:none}
-.now-tag{position:absolute;left:50%;transform:translateX(-50%);font-size:12px;line-height:16px;font-weight:600;color:var(--data);white-space:nowrap}
-.xlabels{display:flex;gap:8px;margin:8px 0 0 40px}
-.xlabels span{flex:1;text-align:center;font-size:12px;color:var(--muted);white-space:nowrap}
+.band{position:absolute;left:5px;right:5px;background:var(--grid-ink);pointer-events:none;
+  bottom:calc(var(--lo) / var(--top) * 100%);height:calc((var(--hi) - var(--lo)) / var(--top) * 100%);transition:bottom 250ms var(--ease-out),height 250ms var(--ease-out)}
+.now-tag{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--v) / var(--top) * 100% + 4px);transition:bottom 250ms var(--ease-out);font-size:12px;line-height:16px;font-weight:600;color:var(--data);white-space:nowrap}
+.xwrap{overflow:hidden;margin:8px 0 0 40px}
+.xlabels{display:flex;will-change:transform}
+.xlabels span{flex:none;text-align:center;font-size:12px;color:var(--muted);white-space:nowrap}
+.head-actions{display:flex;gap:8px;align-items:center}
+@media (max-width:600px){.xlabels span.half{visibility:hidden}}
 .chart-empty{margin-top:12px;font-size:12px;color:var(--muted)}
 
 /* ── 지난 기록 ── */
@@ -185,13 +192,6 @@ details.fold .fold-body{padding:0 24px 24px}
 .map .seat.occ text{fill:var(--on-data)}
 .map .seat.away text{fill:var(--mid)}
 .map .seat.unm text,.map .seat.idle text{fill:var(--faint)}
-.seat-info{display:grid;grid-template-columns:minmax(0,1fr);gap:24px 32px;margin-top:24px;padding-top:24px;border-top:1px solid var(--rule)}
-.seat-info h3{margin:0 0 12px;font-size:14px;font-weight:600}
-.zone-row{display:grid;grid-template-columns:56px minmax(0,1fr) 48px;align-items:center;gap:12px;height:36px}
-.zone-row span:first-child{color:var(--muted)}
-.zbar{height:8px;border-radius:999px;background:var(--active);overflow:hidden}
-.zbar b{display:block;height:100%;background:var(--data);border-radius:999px;transition:width 300ms var(--ease-out)}
-.zone-row em{font-style:normal;text-align:right;font-weight:600}
 .kv{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px 12px;margin:0}
 .kv dt{color:var(--muted)}
 .kv dd{margin:0;word-break:keep-all}
@@ -206,15 +206,23 @@ details.fold .fold-body{padding:0 24px 24px}
 .tlegend i.blind{background:var(--busy-bg);border:1.5px dashed var(--busy)}
 .tlegend i.door{width:14px;height:4px;border:0;border-radius:2px;background:var(--ok-fill)}
 
+.about{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 40px}
+.privacy{display:flex;gap:16px;align-items:flex-start;padding:20px;border-radius:var(--r-card);background:var(--ok-bg)}
+.privacy svg{flex:none;color:var(--ok);margin-top:2px}
+.privacy h2,.about h2{margin:0 0 6px;font-size:16px;line-height:24px;font-weight:600}
+.privacy p,.about p{margin:0;color:var(--muted);word-break:keep-all}
+.privacy p+p{margin-top:6px}
+.about .kv{margin-top:16px;grid-template-columns:72px minmax(0,1fr)}
 footer{max-width:1248px;margin:0 auto;padding:0 24px 40px;color:var(--muted);font-size:12px;line-height:16px;display:flex;justify-content:space-between;gap:24px}
 footer p{margin:0;display:flex;gap:8px;align-items:flex-start;word-break:keep-all}
 footer svg{flex:none}
 
+@media (prefers-reduced-motion:reduce){.bar,.band,.avg,.now-tag{transition:none}}
 @media (prefers-reduced-motion:reduce){.btn.spin svg{animation:none}button.btn,.occ-fill,.zbar b{transition:none}}
 /* 좁은 창: 한 줄로 쌓기 */
 @media (max-width:1100px){
   .grid{grid-template-columns:minmax(0,1fr)}
-  .seat-info{grid-template-columns:minmax(0,1fr)}
+  .about{grid-template-columns:minmax(0,1fr)}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   .kpi:nth-child(3){border-left:0}
   .kpi:nth-child(n+3){border-top:1px solid var(--border)}
@@ -280,20 +288,23 @@ footer svg{flex:none}
 
     <section class="card full" id="chartCard">
       <div class="card-head">
-        <h2 id="chartTitle">오늘 인원 · 15분 단위</h2>
-        <button class="btn toggle" id="cmpBtn" type="button" aria-pressed="false">지난 평일과 비교</button>
+        <h2 id="chartTitle">오늘 시간대별 인원 · 15분 단위</h2>
+        <div class="head-actions">
+          <button class="btn" id="nowBtn" type="button" hidden>지금으로</button>
+          <button class="btn toggle" id="cmpBtn" type="button" aria-pressed="false">지난 평일과 비교</button>
+        </div>
       </div>
       <p class="cmp-sum tnum" id="cmpSum" hidden></p>
       <div class="plot">
         <div class="yaxis tnum" id="yaxis" aria-hidden="true"></div>
         <div class="area" id="area"><div class="bars" id="bars"></div><div class="tip tnum" id="tip" hidden></div></div>
       </div>
-      <div class="xlabels tnum" id="xlabels" aria-hidden="true"></div>
-      <div class="legend" id="cmpLegend" hidden>
+      <div class="xwrap"><div class="xlabels tnum" id="xlabels" aria-hidden="true"></div></div>
+      <div class="legend">
         <span><i class="past"></i>오늘</span>
         <span><i class="avg"></i>지난 평일 평균</span>
         <span><i class="fc"></i>남은 시간 (지난 평일 평균)</span>
-        <span><i class="span"></i>지난 평일 범위</span>
+        <span id="spanLegend" hidden><i class="span"></i>지난 평일 범위</span>
       </div>
       <p class="chart-empty" id="chartSub"></p>
     </section>
@@ -318,25 +329,33 @@ footer svg{flex:none}
         <span><i class="away"></i>자리 비움</span><span><i class="unm"></i>측정 안 됨</span>
         <span><i class="blind"></i>카메라 밖 · 야외 (집계 제외)</span><span><i class="door"></i>출입구</span>
       </div>
-      <div class="seat-info">
-        <section>
-          <h3>식당 정보</h3>
-          <dl class="kv">
-            <dt>배식대</dt><dd>대한짜장 · 수오미엔 · 하즈벤 · 공여사맛집</dd>
-            <dt>좌석</dt><dd class="tnum"><span id="capText">—</span>석 집계 · 1인석 9석은 카메라 밖</dd>
-            <dt>키오스크</dt><dd class="tnum">3대</dd>
-            <dt>카메라</dt><dd class="tnum">4대 · 좌석 구역 3 + 키오스크 1</dd>
-          </dl>
-        </section>
-      </div>
       <p class="foot-note" id="seatNote">자리 비움은 잠깐 자리를 떠난 것으로 보이는 자리예요. 빗금 친 곳은 카메라가 안 보이거나 야외라서 집계에서 빠져요.</p>
+    </section>
+
+    <section class="card full about" id="about">
+      <div class="privacy">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+        <div>
+          <h2>카메라 영상은 저장하거나 전송하지 않아요</h2>
+          <p>영상은 식당 안 장치에서 사람 수를 세는 데만 쓰고 바로 버려요. 서버로는 사람 수와 자리 상태 같은 숫자만 보내요.</p>
+          <p>얼굴이나 개인을 알아보는 정보는 모으지 않아요.</p>
+        </div>
+      </div>
+      <div>
+        <h2>밥먹을래말래는</h2>
+        <p>순천향대학교 컴퓨터공학과 캡스톤디자인 프로젝트예요. 식당에 가기 전에 지금 자리가 있는지, 언제 덜 붐비는지 알 수 있도록 만들었어요.</p>
+        <dl class="kv tnum">
+          <dt>시범 운영</dt><dd>2026.10.20 ~ 11.05 · 평일 08:00–19:30</dd>
+          <dt>팀</dt><dd>이승원 · 팀원</dd>
+          <dt>참고</dt><dd>시범 운영 중이라 실제와 다를 수 있어요. 주문 대기는 키오스크 앞 인원으로 낸 추정값이고, 키오스크 카메라는 19:00에 꺼져요.</dd>
+        </dl>
+      </div>
     </section>
   </main>
 </div>
 
 <footer>
-  <p><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/></svg>카메라 영상은 저장하거나 전송하지 않아요. 사람 수와 자리 상태만 숫자로 보내요.</p>
-  <p>시범 운영 중이라 실제와 다를 수 있어요. 주문 대기는 키오스크 앞 인원으로 낸 추정값이에요.</p>
+  <p>밥먹을래말래 · 순천향대학교 컴퓨터공학과 캡스톤디자인 2026</p>
 </footer>
 
 <script>
@@ -418,10 +437,11 @@ let cap = 120, latest = null, slotData = null, todayRows = [], compareOn = false
 
 const Q = new URLSearchParams(location.search);
 const DEMO = Q.has("demo");
+const KIOSK_OFF = "19:00";             // 키오스크 카메라(cam4) 꺼지는 시각
 const hm = ts => ts.slice(11, 16);
 const toMin = s => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
 const addMin = (s, n) => { const v = toMin(s) + n; return `${String(Math.floor(v / 60)).padStart(2, "0")}:${String(v % 60).padStart(2, "0")}`; };
-const nowHM = () => DEMO ? "12:05" : new Date().toTimeString().slice(0, 5);
+const nowHM = () => DEMO ? (Q.get("at") || "12:05") : new Date().toTimeString().slice(0, 5);
 const live = () => latest && latest.open && latest.status === "ok" && latest.people != null;
 
 // 값이 없으면 회색 대시
@@ -439,7 +459,6 @@ function kioskLevel(q){ return q <= 0 ? "여유" : q <= 6 ? "보통" : "혼잡";
 function renderLatest(d){
   latest = d;
   if (d.capacity) cap = d.capacity;
-  $("capText").textContent = cap;
   const ok = d.status === "ok";
   $("dot").classList.toggle("off", !(ok && d.open));
   $("liveText").lastChild.textContent = d.ts ? `${ok ? "실시간" : "마지막 기록"} · ${hm(d.ts)} 업데이트` : "아직 데이터 없음";
@@ -479,7 +498,10 @@ function renderLatest(d){
     $("occ").hidden = true;
   }
   const k = d.kiosk;
-  if (d.open && ok && k && k.people != null){
+  if (d.open && ok && nowHM() >= KIOSK_OFF){
+    setVal("kioskMain", null); $("kioskMain").style.color = "";
+    $("kioskSub").textContent = `키오스크 카메라는 ${KIOSK_OFF}에 꺼져요`;
+  } else if (d.open && ok && k && k.people != null){
     setVal("kioskMain", k.queue <= 0 ? "바로 주문" : `약 ${Math.max(1, Math.round(k.wait_min))}분`);
     $("kioskSub").textContent = k.queue <= 0 ? `줄 없음 · 키오스크 앞 ${k.people}명` : `줄 ${k.queue}명 · 1분에 약 ${k.rate}명씩 줄어요`;
     $("kioskMain").style.color = kioskLevel(k.queue) === "혼잡" ? "var(--busy)" : "";
@@ -578,7 +600,8 @@ function showTip(col){
   col.classList.add("on");
   tip.innerHTML = col.dataset.tip; tip.hidden = false;
   const aw = area.clientWidth, tw = tip.offsetWidth;
-  const cx = col.offsetLeft + col.offsetWidth / 2;
+  const cr = col.getBoundingClientRect(), ar = area.getBoundingClientRect();
+  const cx = cr.left - ar.left + cr.width / 2;
   tip.style.left = Math.min(aw - tw, Math.max(0, cx - tw / 2)) + "px";
 }
 function hideTip(){
@@ -606,73 +629,137 @@ function renderCompareSummary(s, curT, after){
     : `${when} 약 <b>${round(ref.actual)}명</b> · 지난 평일 같은 시간(평균 약 ${round(ref.forecast)}명)보다 <b>${round(Math.abs(diff))}명 ${diff > 0 ? "많아요" : "적어요"}</b>.`;
 }
 
+let viewStart = null, curStart = 0, curIdx = 0, slotMax = [], scaleTop = 0;     // viewStart: 사용자가 끌어 놓은 왼쪽 칸 (null = 지금 따라가기)
+const visCount = () => $("area").clientWidth < 520 ? 8 : 12;
+
 function renderSlots(s){
   slotData = s;
-  $("chartTitle").textContent = `오늘 ${s.window} 인원 · 15분 단위`;
-  $("cmpLegend").hidden = !compareOn;
-  $("chartSub").textContent = compareOn
-    ? (s.days > 0 ? `지난 평일 ${s.days}일 기록과 비교한 값이에요. 막대를 누르거나 마우스를 올리면 시간별로 볼 수 있어요.` : "")
-    : "막대를 누르거나 마우스를 올리면 그 시간의 인원을 볼 수 있어요.";
+  $("spanLegend").hidden = !compareOn;
+  $("chartSub").textContent = (s.days > 0 ? `점선은 지난 평일 ${s.days}일 같은 시간 평균이에요. ` : "지난 평일 평균은 기록이 쌓이면 보여요. ")
+    + "막대를 잡고 좌우로 끌면 앞뒤 시간을 볼 수 있어요.";
   hideTip();
-  if (!s.slots.length) return;
-  // 지금이 그래프 범위 안일 때만 "지금" 강조
-  const nowT = nowHM(), endT = addMin(s.slots[s.slots.length - 1].t, 15);
+  const n = s.slots.length;
+  if (!n) return;
+  const nowT = nowHM(), endT = addMin(s.slots[n - 1].t, 15);
   const before = nowT < s.slots[0].t, after = nowT >= endT;
   const curT = (!before && !after) ? s.now_slot : null;
+  curIdx = curT ? Math.max(0, s.slots.findIndex(x => x.t === curT)) : after ? n - 1 : 0;
   renderCompareSummary(s, curT, after);
-  const shown = [];
-  s.slots.forEach(x => {
-    const past = after || (curT && x.t <= curT);
-    if (past && x.actual != null) shown.push(x.actual);
-    if (compareOn){ if (x.forecast != null) shown.push(x.forecast); if (x.hi != null) shown.push(x.hi); }
-  });
-  // 눈금: 보여 주는 값에 맞춰 0부터 딱 떨어지는 간격으로
-  const raw = Math.max(10, ...shown);
-  const step = [5, 10, 20, 25, 40, 50, 100, 200].find(v => raw / v <= 4) || 400;
-  const top = Math.ceil(raw / step) * step;
-  const pos = v => (v / top * 100) + "%";
-  const ya = $("yaxis"), area = $("area"), bars = $("bars"), xl = $("xlabels");
-  ya.innerHTML = ""; xl.innerHTML = "";
-  area.querySelectorAll(".gl").forEach(e => e.remove());
-  for (let v = 0; v <= top + 0.1; v += step){
-    const sp = document.createElement("span"); sp.style.bottom = pos(v); sp.textContent = Math.round(v); ya.appendChild(sp);
-    if (v > 0){ const g = document.createElement("div"); g.className = "gl"; g.style.bottom = pos(v); area.insertBefore(g, bars); }
-  }
+  // 칸마다 축 계산에 쓸 최댓값 (보이는 범위에 맞춰 축을 바꿈)
+  slotMax = s.slots.map((x, i) => Math.max(
+    (after || (curT && i <= curIdx)) && x.actual != null ? x.actual : 0,
+    x.forecast != null ? x.forecast : 0,
+    compareOn && x.hi != null ? x.hi : 0));
+  const bars = $("bars"), xl = $("xlabels");
+  xl.innerHTML = "";
+  scaleTop = 0;
   bars.innerHTML = "";
-  s.slots.forEach(x => {
-    const isNow = x.t === curT, isPast = !isNow && (after || (curT && x.t < curT));
+  s.slots.forEach((x, i) => {
+    const isNow = x.t === curT, isPast = !isNow && (after || (curT && i < curIdx));
     const kind = isNow ? "now" : isPast ? "past" : "future";
     const col = document.createElement("div"); col.className = "col";
     if (compareOn && x.lo != null && x.hi != null && x.hi > x.lo){
       const band = document.createElement("div"); band.className = "band";
-      band.style.bottom = pos(x.lo); band.style.height = ((x.hi - x.lo) / top * 100) + "%";
+      band.style.setProperty("--lo", x.lo); band.style.setProperty("--hi", x.hi);
       col.appendChild(band);
     }
     if (kind !== "future" && x.actual != null){
       const el = document.createElement("div"); el.className = "bar" + (isNow ? " now" : "");
-      el.style.height = pos(Math.max(x.actual, top * .01)); col.appendChild(el);
-    } else if (kind === "future" && compareOn && x.forecast != null){
+      el.style.setProperty("--v", x.actual); col.appendChild(el);
+    } else if (kind === "future" && x.forecast != null){
       const el = document.createElement("div"); el.className = "bar fc";
-      el.style.height = pos(Math.max(x.forecast, top * .01)); col.appendChild(el);
+      el.style.setProperty("--v", x.forecast); col.appendChild(el);
     }
-    if (compareOn && kind !== "future" && x.forecast != null){
-      const m = document.createElement("div"); m.className = "avg"; m.style.bottom = pos(x.forecast); col.appendChild(m);
+    if (kind !== "future" && x.forecast != null){
+      const m = document.createElement("div"); m.className = "avg"; m.style.setProperty("--v", x.forecast); col.appendChild(m);
     }
     if (isNow){
-      const tv = x.actual != null ? x.actual : (compareOn ? x.forecast : null);
+      const tv = Math.max(x.actual || 0, x.forecast || 0);
       const tag = document.createElement("span"); tag.className = "now-tag"; tag.textContent = "지금";
-      tag.style.bottom = `calc(${pos(Math.max(tv || 0, compareOn && x.forecast != null ? x.forecast : 0))} + 4px)`; col.appendChild(tag);
+      tag.style.setProperty("--v", tv); col.appendChild(tag);
     }
     col.dataset.tip = slotTip(x, kind);
-    col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") showTip(col); });
+    col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse" && !drag) showTip(col); });
     col.addEventListener("click", () => col.classList.contains("on") ? hideTip() : showTip(col));
     bars.appendChild(col);
     const lab = document.createElement("span");
     lab.textContent = /:(00|30)$/.test(x.t) ? x.t : "";
+    if (x.t.endsWith(":30")) lab.className = "half";
     xl.appendChild(lab);
   });
+  layoutChart();
   renderTrend();
 }
+
+// 칸 너비를 화면에 맞추고, 지금 칸이 오른쪽 끝에 오게 (사용자가 끌어 놓았으면 그 자리 유지)
+function layoutChart(){
+  if (!slotData || !slotData.slots.length) return;
+  const n = slotData.slots.length, vis = visCount(), cw = $("area").clientWidth / vis;
+  $("bars").style.width = n * cw + "px";
+  $("bars").querySelectorAll(".col").forEach(c => c.style.width = cw + "px");
+  $("xlabels").querySelectorAll("span").forEach(c => c.style.width = cw + "px");
+  const maxStart = Math.max(0, n - vis);
+  const follow = Math.min(maxStart, Math.max(0, curIdx - vis + 1));
+  setPan(viewStart == null ? follow : Math.min(maxStart, Math.max(0, viewStart)));
+}
+function setPan(start){
+  curStart = start;
+  const cw = $("area").clientWidth / visCount();
+  const tf = `translateX(${-start * cw}px)`;
+  $("bars").style.transform = tf; $("xlabels").style.transform = tf;
+  $("nowBtn").hidden = viewStart == null;
+  const a = Math.max(0, Math.floor(start)), b = Math.min(slotMax.length, Math.ceil(start + visCount()));
+  setScale(Math.max(10, ...slotMax.slice(a, b)) * 1.15);
+}
+// 세로축: 0부터 딱 떨어지는 간격, 위쪽에 "지금" 글자 자리
+function setScale(raw){
+  const step = [5, 10, 20, 25, 40, 50, 100, 200].find(v => raw / v <= 4) || 400;
+  const top = Math.ceil(raw / step) * step;
+  if (top === scaleTop) return;
+  scaleTop = top;
+  const area = $("area"), ya = $("yaxis"), pos = v => (v / top * 100) + "%";
+  area.style.setProperty("--top", top);
+  ya.innerHTML = "";
+  area.querySelectorAll(".gl").forEach(e => e.remove());
+  for (let v = 0; v <= top + 0.1; v += step){
+    const sp = document.createElement("span"); sp.style.bottom = pos(v); sp.textContent = Math.round(v); ya.appendChild(sp);
+    if (v > 0){ const g = document.createElement("div"); g.className = "gl"; g.style.bottom = pos(v); area.insertBefore(g, $("bars")); }
+  }
+}
+
+// 잡고 끌어서 앞뒤 시간 보기 (마우스·터치)
+let drag = null, swallowClick = false;
+(() => {
+  const area = $("area");
+  area.addEventListener("pointerdown", e => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    drag = {x: e.clientX, start: curStart, id: e.pointerId, moved: false};
+  });
+  area.addEventListener("pointermove", e => {
+    if (!drag || !slotData) return;
+    const dx = e.clientX - drag.x;
+    if (!drag.moved){
+      if (Math.abs(dx) < 5) return;
+      drag.moved = true; area.setPointerCapture(drag.id); area.classList.add("drag"); hideTip();
+    }
+    const vis = visCount(), cw = area.clientWidth / vis, maxStart = Math.max(0, slotData.slots.length - vis);
+    viewStart = Math.min(maxStart, Math.max(0, drag.start - dx / cw));
+    setPan(viewStart);
+  });
+  const end = () => {
+    if (drag && drag.moved){
+      viewStart = Math.round(viewStart);
+      const vis = visCount(), follow = Math.min(Math.max(0, slotData.slots.length - vis), Math.max(0, curIdx - vis + 1));
+      if (viewStart === follow) viewStart = null;     // 지금 위치로 돌아오면 다시 따라가기
+      layoutChart(); area.classList.remove("drag"); swallowClick = true;
+    }
+    drag = null;
+  };
+  area.addEventListener("pointerup", end);
+  area.addEventListener("pointercancel", end);
+  area.addEventListener("click", e => { if (swallowClick){ e.stopPropagation(); swallowClick = false; } }, true);
+  window.addEventListener("resize", layoutChart);
+})();
 
 function renderHistory(h){
   const ul = $("histList");
@@ -727,7 +814,8 @@ $("cmpBtn").addEventListener("click", () => {
   $("cmpBtn").setAttribute("aria-pressed", compareOn);
   if (slotData) renderSlots(slotData);
 });
-$("area").addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hideTip(); });
+$("area").addEventListener("pointerleave", e => { if (e.pointerType === "mouse" && !drag) hideTip(); });
+$("nowBtn").addEventListener("click", () => { viewStart = null; layoutChart(); });
 
 // ── 밝은·어두운 화면 전환 ──
 $("themeBtn").addEventListener("click", () => {
@@ -743,7 +831,12 @@ if (DEMO){
   note.textContent = "예시 데이터로 보는 화면이에요. 실제 식당 상황이 아니에요.";
   document.querySelector(".topbar").after(note);
   const real = window.fetch.bind(window), J = o => new Response(JSON.stringify(o));
-  const curve = [18, 34, 58, 82, 96, 104, 92, 74, 55, 38, 24, 14];      // 점심 11:00~13:45 지난 평일 평균
+  // 지난 평일 평균 (08:00~19:15, 15분 칸): 아침 조금, 점심 12시 정점, 저녁 18시 작은 정점
+  const curve = Array.from({length: 46}, (_, i) => {
+    const m = 480 + i * 15, g = (c, w, h) => h * Math.exp(-(((m - c) / w) ** 2));
+    return Math.round(4 + g(510, 30, 8) + g(725, 45, 100) + g(1080, 45, 34));
+  });
+  const nowM = toMin(nowHM()), slotT = i => { const m = 480 + i * 15; return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
   window.fetch = async (u, o) => {
     if (u === "/api/latest"){
       const ids = Object.keys(LAYOUT.seats), tables = {};
@@ -758,9 +851,10 @@ if (DEMO){
         summary: {total: vals.length, empty: cnt("empty"), occupied: cnt("occupied"), away: cnt("away"), free_seats: freeSeats, seats: seatsTotal, people: 90}, tables});
     }
     if (u === "/api/slots"){
-      const slots = curve.map((f, i) => { const t = `${String(11 + (i >> 2)).padStart(2, "0")}:${String(i % 4 * 15).padStart(2, "0")}`;
-        return {t, forecast: f, lo: Math.round(f * .78), hi: Math.round(f * 1.18), actual: i < 4 ? Math.round(f * 1.06) : i === 4 ? 98 : null}; });
-      return J({window: "점심", now_slot: "12:00", capacity: 154, days: 6, slots});
+      const slots = curve.map((f, i) => { const t = slotT(i), m = toMin(t);
+        return {t, forecast: f, lo: Math.round(f * .78), hi: Math.round(f * 1.18), actual: m <= nowM ? Math.round(f * (1 + ((i * 7) % 5 - 2) / 20)) : null}; });
+      const ns = slotT(Math.max(0, Math.min(45, Math.floor((nowM - 480) / 15))));
+      return J({window: "하루", now_slot: ns, capacity: 154, days: 6, slots});
     }
     if (u === "/api/today"){
       const rows = []; for (let i = 0; i < 40; i++){ const m = 707 + i * .5; rows.push({ts: `2026-10-29 ${String(Math.floor(m / 60)).padStart(2, "0")}:${String(Math.floor(m % 60)).padStart(2, "0")}:00`, total: 76 + Math.round(i * .55)}); }

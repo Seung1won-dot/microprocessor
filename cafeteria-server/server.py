@@ -204,10 +204,10 @@ def today():
 
 @app.get("/api/slots")
 def slots():
-    """식사 시간대를 15분 칸으로 나눠 오늘 실제값과 지난 평일 평균·최소·최대(예측 및 기록)를 돌려준다."""
+    """운영 시간 전체를 15분 칸으로 나눠 오늘 실제값과 지난 평일 평균·최소·최대를 돌려준다."""
     def build():
         now = datetime.datetime.now()
-        name, start, end = WINDOWS[0] if now.strftime("%H:%M") < WINDOW_SWITCH else WINDOWS[1]
+        name, start, end = "하루", OPEN_START, OPEN_END
         today_str = now.date().isoformat()
         labels = []
         t = datetime.datetime.strptime(start, "%H:%M")
