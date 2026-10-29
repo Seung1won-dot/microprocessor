@@ -8,6 +8,7 @@
 !docs/**/
 !docs/**/*.md
 !docs/**/*.pdf
+!docs/**/*.html
 
 # ── 시스템 코드 (2026-10-29, 밥먹을래말래 운영본) ──
 !cafeteria-server/
