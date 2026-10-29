@@ -43,6 +43,11 @@ with db() as con:
     con.execute("""CREATE TABLE IF NOT EXISTS feedback(
         id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, answer TEXT, text TEXT,
         level TEXT, free_pct INTEGER, people INTEGER, used_seats INTEGER, open INTEGER, cid TEXT)""")
+    # 접속 기록: 페이지를 열 때 한 줄 (익명 기기 id, 들어온 사이트 도메인만. IP는 저장하지 않음)
+    con.execute("""CREATE TABLE IF NOT EXISTS visits(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, day TEXT, cid TEXT, ref TEXT)""")
+    if "source" not in [r[1] for r in con.execute("PRAGMA table_info(feedback)")]:
+        con.execute("ALTER TABLE feedback ADD COLUMN source TEXT")     # button / return (돌아왔을 때 알림)
 
 try:
     with open(STATE_PATH) as f:
@@ -289,6 +294,7 @@ def history():
 
 # ---------- 이용자 의견 ----------
 FEEDBACK_ANSWERS = {"맞아요", "더 붐볐어요", "더 한산했어요"}
+FEEDBACK_SOURCES = {"button", "return"}   # 카드 아래 버튼 / 식당 다녀와 돌아왔을 때 알림
 FEEDBACK_GAP = 600          # 같은 기기는 10분에 한 번
 FEEDBACK_PER_MIN = 60       # 전체 1분 상한 (장난 방지)
 _fb_last, _fb_recent, _fb_lock = {}, [], threading.Lock()
@@ -319,12 +325,13 @@ def feedback():
             return jsonify(ok=False, error="too many"), 429
         _fb_last[cid] = now_t
         _fb_recent.append(now_t)
+    source = obj.get("source") if obj.get("source") in FEEDBACK_SOURCES else "button"
     snap = latest().get_json() or {}
     with db() as con:
-        cur = con.execute("INSERT INTO feedback(ts, answer, level, free_pct, people, used_seats, open, cid) VALUES (?,?,?,?,?,?,?,?)",
+        cur = con.execute("INSERT INTO feedback(ts, answer, level, free_pct, people, used_seats, open, cid, source) VALUES (?,?,?,?,?,?,?,?,?)",
                           (datetime.datetime.now().isoformat(timespec="seconds"), answer, snap.get("level"),
                            snap.get("free_pct"), snap.get("people"), snap.get("used_seats"),
-                           1 if snap.get("open") else 0, cid))
+                           1 if snap.get("open") else 0, cid, source))
     return jsonify(ok=True, id=cur.lastrowid)
 
 
@@ -335,10 +342,94 @@ def feedback_list():
         return jsonify(error="unauthorized"), 401
     with db() as con:
         summary = [dict(r) for r in con.execute(
-            "SELECT level, answer, COUNT(*) n FROM feedback GROUP BY level, answer ORDER BY level, answer")]
+            "SELECT source, level, answer, COUNT(*) n FROM feedback GROUP BY source, level, answer ORDER BY source, level, answer")]
         rows = [dict(r) for r in con.execute(
-            "SELECT id, ts, answer, text, level, free_pct, people, used_seats, open FROM feedback ORDER BY id DESC LIMIT 200")]
+            "SELECT id, ts, source, answer, text, level, free_pct, people, used_seats, open FROM feedback ORDER BY id DESC LIMIT 200")]
     return jsonify(total=sum(r["n"] for r in summary), summary=summary, recent=rows)
+
+
+# ---------- 접속 수 ----------
+_visit_last, _visit_recent, _visit_lock = {}, [], threading.Lock()
+
+
+@app.post("/api/visit")
+def visit():
+    """학생용 화면을 열 때 한 번. 같은 기기가 1분 안에 다시 열면 세지 않음."""
+    obj = request.get_json(silent=True) or {}
+    cid = str(obj.get("cid") or "")[:40]
+    if len(cid) < 8:
+        return jsonify(ok=False), 400
+    ref = str(obj.get("ref") or "")[:60]
+    now_t = time.time()
+    with _visit_lock:
+        _visit_recent[:] = [t for t in _visit_recent if now_t - t < 60]
+        if now_t - _visit_last.get(cid, 0) < 60 or len(_visit_recent) >= 600:
+            return jsonify(ok=True, counted=False)
+        _visit_last[cid] = now_t
+        _visit_recent.append(now_t)
+    now = datetime.datetime.now()
+    with db() as con:
+        con.execute("INSERT INTO visits(ts, day, cid, ref) VALUES (?,?,?,?)",
+                    (now.isoformat(timespec="seconds"), now.date().isoformat(), cid, ref))
+    return jsonify(ok=True, counted=True)
+
+
+def from_tailnet():
+    # 공개 주소(Funnel)로 들어온 요청은 127.0.0.1에서 오고, 팀 기기는 Tailscale 주소(100.x)에서 직접 온다
+    return (request.remote_addr or "").startswith("100.")
+
+
+@app.get("/stats")
+def stats():
+    """팀용 접속·의견 통계. Tailscale로 연결된 기기에서 http://<맥미니 Tailscale IP>:8000/stats 로만 열림."""
+    if not from_tailnet():
+        return Response("not found", status=404)
+    today = datetime.date.today().isoformat()
+    with db() as con:
+        days = con.execute("""SELECT day, COUNT(DISTINCT cid) u, COUNT(*) n FROM visits
+                              GROUP BY day ORDER BY day DESC LIMIT 14""").fetchall()
+        hours = con.execute("""SELECT substr(ts, 12, 2) h, COUNT(DISTINCT cid) u, COUNT(*) n FROM visits
+                               WHERE day = ? GROUP BY h ORDER BY h""", (today,)).fetchall()
+        refs = con.execute("""SELECT CASE WHEN ref = '' THEN '(직접 · QR)' ELSE ref END r, COUNT(DISTINCT cid) u
+                              FROM visits GROUP BY r ORDER BY u DESC LIMIT 8""").fetchall()
+        total = con.execute("SELECT COUNT(DISTINCT cid), COUNT(*) FROM visits").fetchone()
+        fb = con.execute("""SELECT COALESCE(source, 'button') s, answer, COUNT(*) n FROM feedback
+                            GROUP BY s, answer ORDER BY s, answer""").fetchall()
+        fb_level = con.execute("""SELECT level, answer, COUNT(*) n FROM feedback WHERE level IS NOT NULL
+                                  GROUP BY level, answer ORDER BY level, answer""").fetchall()
+        texts = con.execute("""SELECT ts, COALESCE(source, 'button'), answer, level, text FROM feedback
+                               WHERE text IS NOT NULL AND text != '' ORDER BY id DESC LIMIT 30""").fetchall()
+
+    def esc(v):
+        return (str(v if v is not None else "")).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    def table(head, rows):
+        th = "".join(f"<th>{h}</th>" for h in head)
+        tr = "".join("<tr>" + "".join(f"<td>{esc(c)}</td>" for c in r) + "</tr>" for r in rows) or f"<tr><td colspan='{len(head)}' class='m'>아직 없어요</td></tr>"
+        return f"<table><tr>{th}</tr>{tr}</table>"
+
+    src = {"button": "카드 버튼", "return": "돌아왔을 때 알림"}
+    today_row = next((r for r in days if r["day"] == today), None)
+    html = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>밥먹을래말래 · 팀 통계</title><meta http-equiv="refresh" content="60">
+<style>body{{font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif;margin:0;padding:24px;background:#f6f7f9;color:#111418}}
+h1{{font-size:22px;margin:0 0 4px}} h2{{font-size:16px;margin:24px 0 8px}} .m{{color:#5f6368}}
+.k{{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}} .k div{{background:#fff;border:1px solid #e6e8eb;border-radius:8px;padding:12px 16px;min-width:140px}}
+.k b{{display:block;font-size:26px;color:#2f6db5}} table{{border-collapse:collapse;background:#fff;border:1px solid #e6e8eb;border-radius:8px;min-width:320px}}
+th,td{{padding:6px 12px;border-bottom:1px solid #eef0f2;text-align:left;font-size:14px}} th{{color:#5f6368;font-weight:600}}</style></head><body>
+<h1>밥먹을래말래 · 팀 통계</h1><div class="m">팀 기기(Tailscale)에서만 열려요 · 1분마다 새로 고침 · 접속 수는 같은 기기를 1명으로 셉니다 (예시 화면 제외)</div>
+<div class="k"><div><span class="m">오늘 방문자</span><b>{today_row["u"] if today_row else 0}명</b></div>
+<div><span class="m">오늘 페이지 열기</span><b>{today_row["n"] if today_row else 0}회</b></div>
+<div><span class="m">누적 방문자</span><b>{total[0]}명</b></div>
+<div><span class="m">의견 응답</span><b>{sum(r["n"] for r in fb)}건</b></div></div>
+<h2>날짜별</h2>{table(["날짜", "방문자", "페이지 열기"], [(r["day"], r["u"], r["n"]) for r in days])}
+<h2>오늘 시간대별</h2>{table(["시", "방문자", "페이지 열기"], [(r["h"] + "시", r["u"], r["n"]) for r in hours])}
+<h2>어디서 들어왔나 (누적 방문자)</h2>{table(["들어온 곳", "방문자"], [(r["r"], r["u"]) for r in refs])}
+<h2>의견: 경로별</h2>{table(["경로", "응답", "건수"], [(src.get(r["s"], r["s"]), r["answer"], r["n"]) for r in fb])}
+<h2>의견: 화면 단계별</h2>{table(["그때 화면", "응답", "건수"], [(r["level"], r["answer"], r["n"]) for r in fb_level])}
+<h2>한 줄 의견 (최근 30개)</h2>{table(["시각", "경로", "응답", "그때 화면", "의견"], [(r[0][5:16].replace("T", " "), src.get(r[1], r[1]), r[2], r[3], r[4]) for r in texts])}
+</body></html>"""
+    return Response(html, mimetype="text/html")
 
 
 @app.get("/api/layout")
