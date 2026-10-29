@@ -486,13 +486,13 @@ function renderLatest(d){
     }
     $("seatMain").style.color = STATUS_TXT[d.level] || "";
     setVal("peopleMain", `${d.people}명`);
-    // 게이지: 자리 판정이 있으면 "자리" 기준(혼잡 단계와 같은 기준), 없으면 좌석 대비 인원
+    // 게이지: 혼잡 단계와 같은 기준 = 사용 좌석 max(점유 테이블 좌석, 인원) / 전체 좌석. 테이블 판정이 없으면 좌석 대비 인원
     $("occ").hidden = false;
     const f = $("occFill");
-    if (sm && sm.total){
-      f.style.width = Math.min(100, (sm.total - sm.empty) / sm.total * 100) + "%";
-      $("t70").textContent = `보통 ${Math.ceil(sm.total * .7)}자리~`; $("t90").textContent = `혼잡 ${Math.ceil(sm.total * .9)}자리~`;
-      $("capLabel").textContent = `${sm.total}자리`;
+    if (d.used_seats != null){
+      f.style.width = Math.min(100, d.used_seats / cap * 100) + "%";
+      $("t70").textContent = `보통 ${Math.ceil(cap * .7)}석~`; $("t90").textContent = `혼잡 ${Math.ceil(cap * .9)}석~`;
+      $("capLabel").textContent = `${cap}석`;
     } else {
       f.style.width = Math.min(100, 100 - (d.free_pct || 0)) + "%";
       $("t70").textContent = `보통 ${Math.round(cap * .7)}명~`; $("t90").textContent = `혼잡 ${Math.round(cap * .9)}명~`;
@@ -802,10 +802,10 @@ if (DEMO){
       const vals = Object.values(tables), cnt = st => vals.filter(v => v.st === st).length;
       const seatsTotal = ids.reduce((s, id) => s + LAYOUT.seats[id].c, 0);
       const freeSeats = ids.filter(id => tables[id].st === "empty").reduce((s, id) => s + LAYOUT.seats[id].c, 0);
-      const fr = cnt("empty") / vals.length;
+      const used = Math.max(seatsTotal - freeSeats, 98), fr = (seatsTotal - used) / seatsTotal;   // 서버와 같은 계산
       return J({status: "ok", open: true, ts: "2026-10-29 12:07:30", people: 98, cams: {cam1: 29, cam2: 38, cam3: 31},
         kiosk: {people: 11, queue: 8, wait_min: 2, rate: 4.0}, level: fr >= .3 ? "여유" : fr >= .1 ? "보통" : "혼잡",
-        free_pct: Math.round(fr * 100), capacity: seatsTotal,
+        free_pct: Math.round(fr * 100), capacity: seatsTotal, used_seats: used,
         summary: {total: vals.length, empty: cnt("empty"), occupied: cnt("occupied"), away: cnt("away"), free_seats: freeSeats, seats: seatsTotal, people: 90}, tables});
     }
     if (u === "/api/slots"){

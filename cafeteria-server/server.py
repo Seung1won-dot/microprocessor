@@ -169,10 +169,17 @@ def latest():
         q = max(0, k - 3)
         kiosk = {"people": k, "queue": q, "wait_min": round(q / 4.0, 1), "n": 3, "rate": 4.0, "estimated": True}
 
+    used_seats = seat_range = None
     if summ and summ.get("total"):
-        capacity = summ["seats"] or CAPACITY
-        free_ratio = summ["empty"] / summ["total"]
-        basis = "tables"
+        # 좌석과 사람을 함께 봄 (docs: 혼잡도-계산.md): 사용 좌석 = max(점유 테이블 좌석 합, 전체 인원)
+        # 점유 테이블은 통째로 쓴다고 보고(합석 안 함), 서 있는 사람도 곧 앉을 수요로 본다. 자리 비움 테이블도 점유로 셈
+        capacity = summ.get("seats") or CAPACITY
+        s_occ = capacity - (summ.get("free_seats") or 0)
+        n_occ = summ["total"] - summ["empty"]
+        used_seats = max(s_occ, people or 0)
+        seat_range = [capacity - used_seats, capacity - max(n_occ, people or 0)]   # 빈 좌석 [보수, 낙관]
+        free_ratio = (capacity - used_seats) / capacity
+        basis = "seats+people"
     else:
         capacity = CAPACITY
         free_ratio = max(0.0, (capacity - (people or 0)) / capacity)
@@ -182,6 +189,7 @@ def latest():
                    cams={k: v for k, v in cams.items() if k not in KIOSK_CAMS},
                    kiosk=kiosk, tables=(st.get("tables") if fresh_state else None), summary=summ,
                    level=level_from_ratio(free_ratio), free_pct=round(free_ratio * 100), basis=basis,
+                   used_seats=used_seats, free_seat_range=seat_range,
                    capacity=capacity, age_sec=int(age))
 
 
