@@ -106,21 +106,30 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .kpi p{margin:0;font-size:12px;line-height:16px;color:var(--muted);word-break:keep-all}
 
 /* ── 예측 그래프 ── */
-.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);justify-content:flex-end}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);margin-top:12px}
 .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:0}
 .legend i.past{background:var(--data-2)}
 .legend i.fc{background:var(--data-tint);outline:1px dashed var(--data);outline-offset:-1px}
+.legend i.avg{height:0;border-top:2px solid var(--text);border-radius:0;vertical-align:3px}
 .legend i.span{background:var(--grid-ink)}
+.btn.toggle{font-weight:500;color:var(--muted)}
+.btn.toggle[aria-pressed="true"]{background:var(--data-tint);border-color:var(--data);color:var(--data)}
+.cmp-sum{margin:0 0 16px;padding:12px 16px;border-radius:var(--r-ctl);background:var(--raised);word-break:keep-all}
+.cmp-sum b{font-weight:600}
 .plot{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px}
 .yaxis{position:relative;height:224px}
 .yaxis span{position:absolute;right:0;transform:translateY(50%);font-size:12px;color:var(--muted)}
 .area{position:relative;height:224px;border-bottom:1px solid var(--faint)}
 .gl{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--rule)}
-.ref{position:absolute;left:0;right:0;height:0;border-top:1px dashed currentColor;pointer-events:none}
-.ref em{position:absolute;right:0;bottom:2px;font-style:normal;font-size:12px;line-height:16px;background:var(--surface);padding-left:6px}
-.ref.보통{color:var(--mid)}.ref.혼잡{color:var(--busy)}
 .bars{position:absolute;inset:0;display:flex;gap:8px}
-.col{flex:1;position:relative;min-width:0}
+.col{flex:1;position:relative;min-width:0;cursor:pointer}
+.col::before{content:"";position:absolute;inset:0 -4px;border-radius:4px;background:transparent;transition:background-color 120ms ease}
+.col.on::before{background:var(--grid-ink)}
+.avg{position:absolute;left:-2px;right:-2px;height:0;border-top:2px solid var(--text);opacity:.55;pointer-events:none}
+.tip{position:absolute;top:0;z-index:2;min-width:132px;padding:8px 12px;border-radius:var(--r-ctl);background:var(--text);color:var(--surface);
+  font-size:12px;line-height:18px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.16)}
+.tip b{display:block;font-size:13px;font-weight:600}
+.tip span{display:block;opacity:.8}
 .bar{position:absolute;left:0;right:0;bottom:0;border-radius:3px 3px 0 0;min-height:2px;background:var(--data-2)}
 .bar.now{background:var(--data)}
 .bar.fc{background:var(--data-tint);border:1px dashed var(--data);border-bottom:0}
@@ -140,9 +149,19 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .rows b{font-weight:600}
 .empty-box{border:1px dashed var(--control);border-radius:8px;min-height:40px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;padding:8px 12px;text-align:center}
 .foot-note{margin:16px 0 0;font-size:12px;line-height:16px;color:var(--muted);word-break:keep-all}
+details.fold{padding:0}
+details.fold summary{list-style:none;display:flex;align-items:center;gap:12px;padding:20px 24px;cursor:pointer;border-radius:var(--r-card)}
+details.fold summary::-webkit-details-marker{display:none}
+details.fold summary h2{margin:0;font-size:16px;line-height:24px;font-weight:600}
+details.fold summary .meta{margin-left:auto;color:var(--muted)}
+details.fold summary svg{flex:none;color:var(--muted);transition:transform 200ms var(--ease-out)}
+details.fold[open] summary svg{transform:rotate(180deg)}
+details.fold summary:focus-visible{outline:2px solid var(--data);outline-offset:-2px}
+@media (hover:hover) and (pointer:fine){details.fold summary:hover{background:var(--raised)}}
+details.fold .fold-body{padding:0 24px 24px}
 
 /* ── 자리 현황 ── */
-.map{background:var(--raised);border-radius:var(--r-card);padding:12px}
+.map{background:var(--raised);border-radius:var(--r-card);padding:8px}
 .map svg{width:100%;height:auto;display:block}
 .map .room{fill:var(--seat-bg);stroke:var(--map-line)}
 .map .zone rect{fill:none;stroke:var(--map-line);stroke-dasharray:4 4;stroke-width:1.2}
@@ -151,7 +170,8 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .map .blind text{font-size:12px;font-weight:600;fill:var(--busy)}
 .map .fx rect{fill:var(--fx);stroke:var(--map-line)}
 .map .fx.kiosk rect{fill:var(--mid-bg);stroke:var(--mid-fill);stroke-opacity:.45}
-.map .fx.door rect{fill:var(--faint);stroke:none}
+.map .fx.door rect{fill:var(--ok-fill);stroke:none}
+.map .fx.door text{fill:var(--ok);font-size:12px}
 .map .fx text{font-size:12.5px;fill:var(--muted);text-anchor:middle;dominant-baseline:middle;font-weight:600}
 .map .fx.cam circle{fill:var(--faint)}
 .map .fx.cam text{fill:var(--faint);font-size:11.5px}
@@ -184,6 +204,7 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .tlegend i.away{background:var(--mid-bg);border:1.5px dashed var(--mid-fill)}
 .tlegend i.unm{background:var(--unm-bg);border:1.5px dashed var(--unm-line)}
 .tlegend i.blind{background:var(--busy-bg);border:1.5px dashed var(--busy)}
+.tlegend i.door{width:14px;height:4px;border:0;border-radius:2px;background:var(--ok-fill)}
 
 footer{max-width:1248px;margin:0 auto;padding:0 24px 40px;color:var(--muted);font-size:12px;line-height:16px;display:flex;justify-content:space-between;gap:24px}
 footer p{margin:0;display:flex;gap:8px;align-items:flex-start;word-break:keep-all}
@@ -257,29 +278,37 @@ footer svg{flex:none}
       </div>
     </section>
 
-    <section class="card" id="chartCard">
+    <section class="card full" id="chartCard">
       <div class="card-head">
-        <h2 id="chartTitle">오늘 예측</h2>
-        <div class="legend">
-          <span><i class="past"></i>오늘 실제</span>
-          <span><i class="fc"></i>예측</span>
-          <span><i class="span"></i>지난 평일 범위</span>
-        </div>
+        <h2 id="chartTitle">오늘 인원 · 15분 단위</h2>
+        <button class="btn toggle" id="cmpBtn" type="button" aria-pressed="false">지난 평일과 비교</button>
       </div>
+      <p class="cmp-sum tnum" id="cmpSum" hidden></p>
       <div class="plot">
         <div class="yaxis tnum" id="yaxis" aria-hidden="true"></div>
-        <div class="area" id="area"><div class="bars" id="bars"></div></div>
+        <div class="area" id="area"><div class="bars" id="bars"></div><div class="tip tnum" id="tip" hidden></div></div>
       </div>
       <div class="xlabels tnum" id="xlabels" aria-hidden="true"></div>
+      <div class="legend" id="cmpLegend" hidden>
+        <span><i class="past"></i>오늘</span>
+        <span><i class="avg"></i>지난 평일 평균</span>
+        <span><i class="fc"></i>남은 시간 (지난 평일 평균)</span>
+        <span><i class="span"></i>지난 평일 범위</span>
+      </div>
       <p class="chart-empty" id="chartSub"></p>
     </section>
 
-    <section class="card">
-      <div class="card-head"><h2>최근 5일, 가장 붐빈 때</h2><span class="meta" id="histMeta"></span></div>
-      <ul class="rows tnum" id="histList"></ul>
-      <div class="empty-box" id="histEmpty">기록이 쌓이면 날짜별로 가장 붐빈 시간이 보여요.</div>
-      <p class="foot-note">날짜마다 15분 평균 인원이 가장 많았던 시간이에요.</p>
-    </section>
+    <details class="card full fold" id="histCard">
+      <summary>
+        <h2>최근 5일, 가장 붐빈 때</h2><span class="meta" id="histMeta"></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </summary>
+      <div class="fold-body">
+        <ul class="rows tnum" id="histList"></ul>
+        <div class="empty-box" id="histEmpty">기록이 쌓이면 날짜별로 가장 붐빈 시간이 보여요.</div>
+        <p class="foot-note">날짜마다 15분 평균 인원이 가장 많았던 시간이에요.</p>
+      </div>
+    </details>
 
     <section class="card full" id="seats">
       <div class="card-head"><h2>자리 현황</h2><span class="meta tnum" id="seatSum"></span></div>
@@ -287,7 +316,7 @@ footer svg{flex:none}
       <div class="tlegend map-legend">
         <span><i class="emp"></i>빈 자리</span><span><i class="occ"></i>사용 중</span>
         <span><i class="away"></i>자리 비움</span><span><i class="unm"></i>측정 안 됨</span>
-        <span><i class="blind"></i>카메라 밖 (집계 제외)</span>
+        <span><i class="blind"></i>카메라 밖 · 야외 (집계 제외)</span><span><i class="door"></i>출입구</span>
       </div>
       <div class="seat-info">
         <section>
@@ -300,7 +329,7 @@ footer svg{flex:none}
           </dl>
         </section>
       </div>
-      <p class="foot-note" id="seatNote">자리 비움은 잠깐 자리를 떠난 것으로 보이는 자리예요. 빗금 친 곳은 카메라가 안 보여서 집계에서 빠져요.</p>
+      <p class="foot-note" id="seatNote">자리 비움은 잠깐 자리를 떠난 것으로 보이는 자리예요. 빗금 친 곳은 카메라가 안 보이거나 야외라서 집계에서 빠져요.</p>
     </section>
   </main>
 </div>
@@ -328,7 +357,8 @@ const ICON = {
 // ── 배치도: 카메라 구역(구역 1=cam1 …)과 테이블 영역 등록(tables.json) 기준 ──
 // 자리 번호·인원수(c)는 라즈베리파이의 테이블 등록과 같아야 함. 빗금(blind)은 카메라가 못 보는 곳.
 const LAYOUT = {
-  w:1200, h:600,
+  w:1336, h:698,
+  room:{x:4, y:4, w:1196, h:596},
   zones:[
     {label:"구역 3 · 20자리", x:98,  y:268, w:478, h:280},
     {label:"구역 2 · 17자리", x:628, y:160, w:300, h:428},
@@ -336,23 +366,27 @@ const LAYOUT = {
   ],
   blind:[
     {label:"1인석 9자리 · 카메라 밖", x:20, y:258, w:64, h:300},
-    {label:"카메라 밖", x:586, y:268, w:32, h:280},
+    {label:"카메라 밖", x:586, y:352, w:32, h:196},
     {label:"카메라 밖", x:1026, y:468, w:150, h:56},   /* T7 · T10 뒤 */
-    {label:"카메라 밖", x:952, y:528, w:224, h:52}     /* T4 뒤 · 구역 1 아래쪽 */
+    {label:"카메라 밖", x:952, y:528, w:224, h:52},    /* T4 뒤 · 구역 1 아래쪽 */
+    /* 식당 밖 야외 테이블 — 이번 프로젝트 집계 대상 아님 */
+    {label:"야외 테이블 · 집계 제외", x:1216, y:4,   w:116, h:690, note:"야외라서 이번 프로젝트에서 세지 않아요"},
+    {label:"야외 테이블 · 집계 제외", x:4,    y:616, w:1204, h:78, note:"야외라서 이번 프로젝트에서 세지 않아요"}
   ],
   fixtures:[
-    {kind:"counter", label:"대한짜장",  x:140, y:16, w:200, h:72},
-    {kind:"counter", label:"수오미엔",  x:380, y:16, w:160, h:72},
-    {kind:"counter", label:"하즈벤",    x:580, y:16, w:160, h:72},
-    {kind:"counter", label:"공여사맛집", x:780, y:16, w:180, h:72},
-    {kind:"kiosk",   label:"키오스크 3대", x:56, y:140, w:110, h:84},
-    {kind:"door",    label:"입구", x:0,    y:170, w:12, h:90},
-    {kind:"door",    label:"입구", x:1188, y:120, w:12, h:80},
-    {kind:"wall",    label:"기둥", x:590, y:380, w:24, h:60},
+    {kind:"counter", label:"대한짜장",  x:160, y:16, w:200, h:72},
+    {kind:"counter", label:"수오미엔",  x:420, y:16, w:160, h:72},
+    {kind:"counter", label:"하즈벤",    x:660, y:16, w:160, h:72},
+    {kind:"counter", label:"공여사맛집", x:880, y:16, w:200, h:72},
+    {kind:"kiosk",   label:"키오스크 3대", x:40, y:156, w:92, h:64},
+    {kind:"door",    label:"출입구", x:0,    y:18,  w:12, h:96, tx:20,   ty:66,  anchor:"start"},
+    {kind:"door",    label:"출입구", x:1188, y:110, w:12, h:84, tx:1180, ty:152, anchor:"end"},
+    {kind:"door",    label:"야외 출입구", x:582, y:590, w:60, h:12, tx:612, ty:574, anchor:"middle"},
+    {kind:"wall",    label:"기둥", x:590, y:420, w:24, h:52},
     {kind:"wall",    label:"바 카운터", x:952, y:212, w:224, h:16},
     {kind:"wall",    label:"", x:640, y:272, w:140, h:6},
-    {kind:"cam", label:"cam4", x:240,  y:116, w:0, h:0},
-    {kind:"cam", label:"cam2", x:660,  y:116, w:0, h:0},
+    {kind:"cam", label:"cam4", x:138,  y:40,  w:0, h:0},
+    {kind:"cam", label:"cam2", x:740,  y:116, w:0, h:0},
     {kind:"cam", label:"cam3", x:150,  y:578, w:0, h:0},
     {kind:"cam", label:"cam1", x:1170, y:578, w:0, h:0}
   ],
@@ -362,9 +396,9 @@ const LAYOUT = {
     T32:{x:112,y:362,w:60,h:46,c:4}, T33:{x:184,y:362,w:60,h:46,c:4}, T34:{x:256,y:362,w:60,h:46,c:4}, T35:{x:328,y:362,w:60,h:46,c:4},
     T36:{x:112,y:424,w:60,h:46,c:4}, T37:{x:184,y:424,w:60,h:46,c:4}, T38:{x:256,y:424,w:88,h:46,c:6}, T39:{x:356,y:424,w:40,h:46,c:2}, T40:{x:408,y:424,w:60,h:46,c:4},
     T41:{x:112,y:486,w:60,h:46,c:4}, T42:{x:184,y:486,w:88,h:46,c:6}, T43:{x:284,y:486,w:40,h:46,c:2}, T44:{x:336,y:486,w:60,h:46,c:4}, T45:{x:408,y:486,w:40,h:46,c:2}, T46:{x:460,y:486,w:40,h:46,c:2}, T47:{x:512,y:486,w:40,h:46,c:2},
-    /* 구역 2 (cam2, 하즈벤 간판 위) — 앞줄 T18·T17·T16·T11 (T11만 약간 위), 바 카운터와 같은 선,
+    /* 구역 2 (cam2, 하즈벤 간판 위) — 앞줄 T18·T17·T16·T11 같은 선 (T11은 조금 떨어져서), 바 카운터와 같은 선,
        T24·T19 앞에 작은 벽, T12 세로줄은 T24·T19보다 약간 아래 */
-    T11:{x:864,y:176,w:40,h:46,c:2},
+    T11:{x:876,y:188,w:40,h:46,c:2},
     T18:{x:644,y:188,w:60,h:46,c:4}, T17:{x:716,y:188,w:60,h:46,c:4}, T16:{x:788,y:188,w:60,h:46,c:4},
     T24:{x:644,y:288,w:60,h:46,c:4}, T19:{x:716,y:288,w:60,h:46,c:4}, T12:{x:788,y:304,w:60,h:46,c:4},
     T25:{x:644,y:354,w:60,h:46,c:4}, T20:{x:716,y:354,w:40,h:46,c:2}, T13:{x:788,y:370,w:40,h:46,c:2},
@@ -380,11 +414,10 @@ const LAYOUT = {
   }
 };
 
-let cap = 120, latest = null, slotData = null, todayRows = [];
+let cap = 120, latest = null, slotData = null, todayRows = [], compareOn = false;
 
 const Q = new URLSearchParams(location.search);
 const DEMO = Q.has("demo");
-const levelOf = t => { const f = (cap - t) / cap; return f >= .3 ? "여유" : f >= .1 ? "보통" : "혼잡"; };
 const hm = ts => ts.slice(11, 16);
 const toMin = s => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
 const addMin = (s, n) => { const v = toMin(s) + n; return `${String(Math.floor(v / 60)).padStart(2, "0")}:${String(v % 60).padStart(2, "0")}`; };
@@ -465,7 +498,8 @@ function renderMap(states){
   const svg = mk("svg", {viewBox: `0 0 ${L.w} ${L.h}`, role: "img", "aria-label": "식당 자리 배치도"});
   svg.innerHTML = `<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
     <rect width="8" height="8" fill="var(--busy-bg)"/><line x1="0" y1="0" x2="0" y2="8" stroke="var(--busy)" stroke-opacity=".4" stroke-width="1.4"/></pattern></defs>`;
-  svg.appendChild(mk("rect", {x: 4, y: 4, width: L.w - 8, height: L.h - 8, class: "room", "stroke-width": 2, rx: 8}));
+  const R = L.room || {x: 4, y: 4, w: L.w - 8, h: L.h - 8};
+  svg.appendChild(mk("rect", {x: R.x, y: R.y, width: R.w, height: R.h, class: "room", "stroke-width": 2, rx: 8}));
   (L.zones || []).forEach(z => {
     const g = mk("g", {class: "zone"});
     g.appendChild(mk("rect", {x: z.x, y: z.y, width: z.w, height: z.h, rx: 10}));
@@ -479,19 +513,22 @@ function renderMap(states){
     const t = mk("text", {x: cx, y: cy, "text-anchor": "middle", "dominant-baseline": "middle",
       transform: b.h > b.w * 1.5 ? `rotate(-90 ${cx} ${cy})` : ""});
     t.textContent = b.label; g.appendChild(t);
-    const title = mk("title", {}); title.textContent = `${b.label} · 카메라가 안 보여서 집계에서 빠져요`; g.appendChild(title);
+    const title = mk("title", {}); title.textContent = `${b.label} · ${b.note || "카메라가 안 보여서 집계에서 빠져요"}`; g.appendChild(title);
     svg.appendChild(g);
   });
   (L.fixtures || []).forEach(f => {
     const g = mk("g", {class: "fx " + f.kind});
-    if (f.kind === "cam"){
+    if (f.kind === "door"){
+      g.appendChild(mk("rect", {x: f.x, y: f.y, width: f.w, height: f.h, rx: 3}));
+      const t = mk("text", {x: f.tx, y: f.ty}); t.style.textAnchor = f.anchor || "middle"; t.textContent = f.label; g.appendChild(t);
+    } else if (f.kind === "cam"){
       g.appendChild(mk("circle", {cx: f.x, cy: f.y, r: 5}));
       const t = mk("text", {x: f.x, y: f.y - 12}); t.textContent = f.label; g.appendChild(t);
     } else {
       g.appendChild(mk("rect", {x: f.x, y: f.y, width: f.w, height: f.h, rx: 4}));
-      if (f.w >= 40 && f.h >= 14 || f.kind === "door"){
+      if (f.w >= 40 && f.h >= 14){
         const t = mk("text", {x: f.x + f.w / 2, y: f.y + f.h / 2, transform: f.h > f.w * 2 ? `rotate(-90 ${f.x + f.w / 2} ${f.y + f.h / 2})` : ""});
-        t.textContent = f.label; if (f.kind === "door") t.setAttribute("fill", "#fff"); g.appendChild(t);
+        t.textContent = f.label; g.appendChild(t);
       } else if (f.label){ const t = mk("text", {x: f.x + f.w / 2, y: f.y - 8}); t.textContent = f.label; g.appendChild(t); }
     }
     svg.appendChild(g);
@@ -516,75 +553,119 @@ function renderSeats(d){
     const sm = d.summary || {};
     $("seatSum").textContent = `빈 자리 ${sm.empty} · 사용 중 ${sm.occupied} · 자리 비움 ${sm.away}`;
     renderMap(t);
-    $("seatNote").textContent = "자리 비움은 잠깐 자리를 떠난 것으로 보이는 자리예요. 빗금 친 곳은 카메라가 안 보여서 집계에서 빠져요.";
+    $("seatNote").textContent = "자리 비움은 잠깐 자리를 떠난 것으로 보이는 자리예요. 빗금 친 곳은 카메라가 안 보이거나 야외라서 집계에서 빠져요.";
   } else {
     $("seatSum").textContent = d && live() ? "자리별 판정 준비 중" : "";
     renderMap(null);
-    $("seatNote").textContent = d && live() ? "자리별 상태는 준비 중이에요." : "운영 시간에 자리별 상태가 보여요. 빗금 친 곳은 카메라가 안 보이는 곳이에요.";
+    $("seatNote").textContent = d && live() ? "자리별 상태는 준비 중이에요." : "운영 시간에 자리별 상태가 보여요. 빗금 친 곳은 카메라가 안 보이거나 야외라서 집계에서 빠지는 곳이에요.";
   }
+}
+
+const round = v => Math.round(v);
+function slotTip(x, kind){
+  const rows = [`<b>${x.t}~${addMin(x.t, 15)}</b>`];
+  if (kind === "future") rows.push("<span>아직 오지 않은 시간이에요</span>");
+  else rows.push(`<span>${kind === "now" ? "지금까지 " : "오늘 "}${x.actual == null ? "기록 없음" : "약 " + round(x.actual) + "명"}</span>`);
+  if (compareOn && x.forecast != null){
+    rows.push(`<span>지난 평일 평균 약 ${round(x.forecast)}명</span>`);
+    if (x.lo != null && x.hi != null && x.hi > x.lo) rows.push(`<span>지난 평일 범위 ${round(x.lo)}~${round(x.hi)}명</span>`);
+  }
+  return rows.join("");
+}
+function showTip(col){
+  const area = $("area"), tip = $("tip");
+  area.querySelectorAll(".col.on").forEach(c => c.classList.remove("on"));
+  col.classList.add("on");
+  tip.innerHTML = col.dataset.tip; tip.hidden = false;
+  const aw = area.clientWidth, tw = tip.offsetWidth;
+  const cx = col.offsetLeft + col.offsetWidth / 2;
+  tip.style.left = Math.min(aw - tw, Math.max(0, cx - tw / 2)) + "px";
+}
+function hideTip(){
+  $("tip").hidden = true;
+  $("area").querySelectorAll(".col.on").forEach(c => c.classList.remove("on"));
+}
+
+function renderCompareSummary(s, curT, after){
+  const el = $("cmpSum");
+  if (!compareOn){ el.hidden = true; return; }
+  el.hidden = false;
+  if (!s.days){ el.textContent = "비교할 지난 평일 기록을 모으는 중이에요."; return; }
+  // 지금 칸(없으면 오늘 기록이 있는 가장 최근 칸)을 지난 평일 같은 칸과 비교
+  const done = s.slots.filter(x => (after || (curT && x.t <= curT)) && x.actual != null && x.forecast != null);
+  const ref = done[done.length - 1];
+  if (!ref){
+    const peak = s.slots.filter(x => x.forecast != null).reduce((a, b) => (!a || b.forecast > a.forecast) ? b : a, null);
+    el.innerHTML = peak ? `지난 평일엔 <b>${peak.t}</b>쯤 가장 붐볐어요 (평균 약 ${round(peak.forecast)}명).` : "비교할 지난 평일 기록이 없어요.";
+    return;
+  }
+  const diff = ref.actual - ref.forecast, near = Math.max(3, ref.forecast * 0.1);
+  const when = ref.t === curT ? "지금" : `${ref.t}`;
+  el.innerHTML = Math.abs(diff) < near
+    ? `${when} 약 <b>${round(ref.actual)}명</b> · 지난 평일 같은 시간(평균 약 ${round(ref.forecast)}명)과 <b>비슷해요</b>.`
+    : `${when} 약 <b>${round(ref.actual)}명</b> · 지난 평일 같은 시간(평균 약 ${round(ref.forecast)}명)보다 <b>${round(Math.abs(diff))}명 ${diff > 0 ? "많아요" : "적어요"}</b>.`;
 }
 
 function renderSlots(s){
   slotData = s;
-  $("chartTitle").textContent = `오늘 ${s.window} 예측 · 15분 단위`;
-  $("chartSub").textContent = s.days > 0
-    ? `점선은 지난 평일 ${s.days}일 평균, 회색 띠는 그 기간의 날짜별 범위예요.`
-    : "예측용 평일 기록을 모으는 중이에요.";
+  $("chartTitle").textContent = `오늘 ${s.window} 인원 · 15분 단위`;
+  $("cmpLegend").hidden = !compareOn;
+  $("chartSub").textContent = compareOn
+    ? (s.days > 0 ? `지난 평일 ${s.days}일 기록과 비교한 값이에요. 막대를 누르거나 마우스를 올리면 시간별로 볼 수 있어요.` : "")
+    : "막대를 누르거나 마우스를 올리면 그 시간의 인원을 볼 수 있어요.";
+  hideTip();
   if (!s.slots.length) return;
   // 지금이 그래프 범위 안일 때만 "지금" 강조
   const nowT = nowHM(), endT = addMin(s.slots[s.slots.length - 1].t, 15);
   const before = nowT < s.slots[0].t, after = nowT >= endT;
   const curT = (!before && !after) ? s.now_slot : null;
-  const known = [];
+  renderCompareSummary(s, curT, after);
+  const shown = [];
   s.slots.forEach(x => {
-    const past = after || (curT && x.t < curT);
-    if ((past || x.t === curT) && x.actual != null) known.push(x.actual);
-    if (!past && x.forecast != null) known.push(x.forecast);
-    if (!past && x.hi != null) known.push(x.hi);
+    const past = after || (curT && x.t <= curT);
+    if (past && x.actual != null) shown.push(x.actual);
+    if (compareOn){ if (x.forecast != null) shown.push(x.forecast); if (x.hi != null) shown.push(x.hi); }
   });
-  // 눈금: 0부터 딱 떨어지는 간격 (10·20·25·40·50…)으로 좌석 수까지
-  const raw = Math.max(cap, ...known, 1);
-  const step = [10, 20, 25, 40, 50, 100, 200].find(v => raw / v <= 5) || 400;
+  // 눈금: 보여 주는 값에 맞춰 0부터 딱 떨어지는 간격으로
+  const raw = Math.max(10, ...shown);
+  const step = [5, 10, 20, 25, 40, 50, 100, 200].find(v => raw / v <= 4) || 400;
   const top = Math.ceil(raw / step) * step;
   const pos = v => (v / top * 100) + "%";
   const ya = $("yaxis"), area = $("area"), bars = $("bars"), xl = $("xlabels");
   ya.innerHTML = ""; xl.innerHTML = "";
-  area.querySelectorAll(".gl,.ref").forEach(e => e.remove());
+  area.querySelectorAll(".gl").forEach(e => e.remove());
   for (let v = 0; v <= top + 0.1; v += step){
     const sp = document.createElement("span"); sp.style.bottom = pos(v); sp.textContent = Math.round(v); ya.appendChild(sp);
     if (v > 0){ const g = document.createElement("div"); g.className = "gl"; g.style.bottom = pos(v); area.insertBefore(g, bars); }
   }
-  [["보통", .7], ["혼잡", .9]].forEach(([lv, r]) => {
-    const e = document.createElement("div"); e.className = "ref " + lv; e.style.bottom = pos(cap * r);
-    e.innerHTML = `<em>${lv} ${Math.round(cap * r)}명~</em>`; area.insertBefore(e, bars);
-  });
   bars.innerHTML = "";
   s.slots.forEach(x => {
-    const isPast = after || (curT && x.t < curT), isNow = x.t === curT;
+    const isNow = x.t === curT, isPast = !isNow && (after || (curT && x.t < curT));
+    const kind = isNow ? "now" : isPast ? "past" : "future";
     const col = document.createElement("div"); col.className = "col";
-    if (!isPast && !isNow && x.lo != null && x.hi != null && x.hi > x.lo){
+    if (compareOn && x.lo != null && x.hi != null && x.hi > x.lo){
       const band = document.createElement("div"); band.className = "band";
       band.style.bottom = pos(x.lo); band.style.height = ((x.hi - x.lo) / top * 100) + "%";
       col.appendChild(band);
     }
-    // 지난 칸 = 오늘 실제만, 앞 칸 = 예측 점선 + 범위만
-    const v = isPast || isNow ? x.actual : x.forecast;
-    const el = document.createElement("div"); el.className = "bar";
-    if (isNow && x.actual == null && x.forecast != null){ el.classList.add("fc"); el.style.height = pos(Math.max(x.forecast, top * .01)); }
-    else if (v == null) el.classList.add("none");
-    else el.style.height = pos(Math.max(v, top * .01));
-    if (!isPast && !isNow) el.classList.add("fc");
-    if (isNow && x.actual != null) el.classList.add("now");
-    const kind = isNow ? "지금까지" : isPast ? "실제" : "예측";
-    el.title = `${x.t} ${kind} · ` + (v == null ? "기록 없음" : `약 ${Math.round(v)}명`) + (!isPast && !isNow && x.lo != null ? ` (${Math.round(x.lo)}~${Math.round(x.hi)}명)` : "");
-    col.appendChild(el);
-    if (isNow){
-      const tv = x.actual != null ? x.actual : x.forecast;
-      if (tv != null){
-        const tag = document.createElement("span"); tag.className = "now-tag"; tag.textContent = "지금";
-        tag.style.bottom = `calc(${pos(tv)} + 4px)`; col.appendChild(tag);
-      }
+    if (kind !== "future" && x.actual != null){
+      const el = document.createElement("div"); el.className = "bar" + (isNow ? " now" : "");
+      el.style.height = pos(Math.max(x.actual, top * .01)); col.appendChild(el);
+    } else if (kind === "future" && compareOn && x.forecast != null){
+      const el = document.createElement("div"); el.className = "bar fc";
+      el.style.height = pos(Math.max(x.forecast, top * .01)); col.appendChild(el);
     }
+    if (compareOn && kind !== "future" && x.forecast != null){
+      const m = document.createElement("div"); m.className = "avg"; m.style.bottom = pos(x.forecast); col.appendChild(m);
+    }
+    if (isNow){
+      const tv = x.actual != null ? x.actual : (compareOn ? x.forecast : null);
+      const tag = document.createElement("span"); tag.className = "now-tag"; tag.textContent = "지금";
+      tag.style.bottom = `calc(${pos(Math.max(tv || 0, compareOn && x.forecast != null ? x.forecast : 0))} + 4px)`; col.appendChild(tag);
+    }
+    col.dataset.tip = slotTip(x, kind);
+    col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") showTip(col); });
+    col.addEventListener("click", () => col.classList.contains("on") ? hideTip() : showTip(col));
     bars.appendChild(col);
     const lab = document.createElement("span");
     lab.textContent = /:(00|30)$/.test(x.t) ? x.t : "";
@@ -639,6 +720,14 @@ async function loadSlow(){
   try { renderSlots(await getJSON("/api/slots")); } catch (e) {}
   try { renderHistory(await getJSON("/api/history")); } catch (e) {}
 }
+
+// ── 지난 평일과 비교 (누를 때만 예측·범위 표시) ──
+$("cmpBtn").addEventListener("click", () => {
+  compareOn = !compareOn;
+  $("cmpBtn").setAttribute("aria-pressed", compareOn);
+  if (slotData) renderSlots(slotData);
+});
+$("area").addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hideTip(); });
 
 // ── 밝은·어두운 화면 전환 ──
 $("themeBtn").addEventListener("click", () => {
