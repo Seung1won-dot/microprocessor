@@ -84,7 +84,7 @@ h2 .n{display:inline-flex;width:17px;height:17px;border-radius:50%;background:va
 .foot b{color:var(--text)}
 /* 뒷면 */
 table.chg{width:100%;border-collapse:collapse;font-size:8.9pt}
-table.chg th,table.chg td{text-align:left;vertical-align:top;padding:2mm 2mm;border-bottom:1px solid var(--border)}
+table.chg th,table.chg td{text-align:left;vertical-align:top;padding:1.45mm 2mm;border-bottom:1px solid var(--border)}
 table.chg thead th{font-size:8.4pt;color:var(--muted);font-weight:600;border-bottom:1.4px solid var(--text);padding-top:0}
 table.chg tbody th{width:22mm;font-weight:700}
 table.chg td.old{color:var(--faint);width:40mm}
@@ -96,11 +96,16 @@ table.chg td b{color:var(--data)}
 .kpi{border:1px solid var(--border);border-radius:6px;padding:2.4mm 3mm}
 .kpi b{display:block;font-size:15pt;line-height:1.2;color:var(--data)}
 .kpi small{color:var(--muted);font-size:8.4pt}
+.pq{display:grid;grid-template-columns:minmax(0,1fr) 38mm;gap:3mm;align-items:stretch}
+.qrcard{border:1px solid var(--border);border-radius:7px;padding:3mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1mm}
+.qrcard .qr{width:28mm;height:28mm;display:block}
+.qrcard b{font-size:9.6pt;margin-top:1mm}
+.qrcard span{font-size:7.4pt;color:var(--muted)}
 .privacy{background:var(--ok-bg);border-radius:7px;padding:3.4mm 4mm;display:grid;grid-template-columns:auto 1fr;gap:3mm}
 .privacy svg{color:var(--ok);margin-top:1px}
 .privacy h3{margin:0 0 1mm;font-size:10.8pt}
 .privacy ul{margin:0;padding-left:4mm;font-size:9pt}
-.privacy li{margin:.6mm 0}
+.privacy li{margin:.35mm 0}
 .flow{display:flex;align-items:center;gap:1.6mm;flex-wrap:nowrap;font-size:8.8pt;white-space:nowrap}
 .flow span{background:var(--raised);border:1px solid var(--border);border-radius:5px;padding:1mm 2.4mm}
 .flow i{font-style:normal;color:var(--faint)}
@@ -212,7 +217,7 @@ table.chg td b{color:var(--data)}
 
   <table class="chg">
     <thead><tr><th>항목</th><th>포스터</th><th>지금</th><th>의미</th></tr></thead>
-    <tbody><tr><th>혼잡도 판단</th><td class='old'>좌석 대비 인원 (인원 ÷ 좌석 수)</td><td>테이블 51곳 점유 판정 + <b>max(점유 테이블 좌석, 인원)</b></td><td class='why'>사람 수만으로는 "4인석에 1명" 상황을 못 잡아 기준을 다시 정의 (앞면)</td></tr><tr><th>테이블 단위 판정</th><td class='old'>"목표 화면 (일러스트)", 결과의 "확장"</td><td><b>구현해서 운영 중</b>: 사용 중 · 자리 비움 · 빈 자리, 웹 배치도에 표시</td><td class='why'>포스터의 목표를 실제로 달성</td></tr><tr><th>키오스크 대기</th><td class='old'>결과의 "확장"</td><td>cam4로 키오스크 줄을 세어 <b>주문 대기 시간</b> 안내 (19:00 카메라 종료)</td><td class='why'>확장 계획 중 하나 구현</td></tr><tr><th>갱신 주기</th><td class='old'>피크 5초 · 평상시 8초</td><td><b>피크 3초 · 평상시 5초</b></td><td class='why'>추론 엔진을 NCNN으로 바꿔 약 2배 빨라짐 (검출 결과 동일)</td></tr><tr><th>처리 시간</th><td class='old'>추론 로그 0.61초 · 카메라 3대</td><td>식당 카메라 4대 1회 <b>약 2초</b> (1280 입력)</td><td class='why'>포스터 로그는 강의실 테스트(640 입력) 화면</td></tr><tr><th>카메라</th><td class='old'>검출 사진 cam1 ~ cam3</td><td>4대 · cam4는 키오스크 줄 담당</td><td class='why'>좌석 구역 3대 + 키오스크 1대</td></tr><tr><th>집계 구역</th><td class='old'>꼭짓점 4개로 구역 지정</td><td>꼭짓점 3~6개</td><td class='why'>식당 모양에 맞게 조정</td></tr><tr><th>시간대별 정보</th><td class='old'>15분 단위 "혼잡 예측"</td><td>15분 칸마다 <b>"평소"</b>(지난 평일 평균)와 오늘을 겹쳐 표시</td><td class='why'>학생에게 더 직관적인 표현</td></tr></tbody>
+    <tbody><tr><th>혼잡도 판단</th><td class='old'>좌석 대비 인원 (인원 ÷ 좌석 수)</td><td>테이블 51곳 점유 판정 + <b>max(점유 테이블 좌석, 인원)</b></td><td class='why'>사람 수만으로는 "4인석에 1명" 상황을 못 잡아 기준을 다시 정의 (앞면)</td></tr><tr><th>테이블 단위 판정</th><td class='old'>"목표 화면 (일러스트)", 결과의 "확장"</td><td><b>구현해서 운영 중</b>: 사용 중 · 자리 비움 · 빈 자리, 웹 배치도에 표시</td><td class='why'>포스터의 목표를 실제로 달성</td></tr><tr><th>키오스크 대기</th><td class='old'>결과의 "확장"</td><td>cam4로 키오스크 줄을 세어 <b>주문 대기 시간</b> 안내 (19:00 카메라 종료)</td><td class='why'>확장 계획 중 하나 구현</td></tr><tr><th>갱신 주기</th><td class='old'>피크 5초 · 평상시 8초</td><td><b>피크 3초 · 평상시 5초</b></td><td class='why'>추론 엔진을 NCNN으로 바꿔 약 2배 빨라짐 (검출 결과 동일)</td></tr><tr><th>처리 시간</th><td class='old'>추론 로그 0.61초 · 카메라 3대</td><td>식당 카메라 4대 1회 <b>약 2초</b> (1280 입력)</td><td class='why'>포스터 로그는 강의실 테스트(640 입력) 화면</td></tr><tr><th>카메라</th><td class='old'>검출 사진 cam1 ~ cam3</td><td>4대 · cam4는 키오스크 줄 담당</td><td class='why'>좌석 구역 3대 + 키오스크 1대</td></tr><tr><th>집계 구역</th><td class='old'>꼭짓점 4개로 구역 지정</td><td>꼭짓점 3~6개</td><td class='why'>식당 모양에 맞게 조정</td></tr><tr><th>시간대별 정보</th><td class='old'>15분 단위 "혼잡 예측"</td><td>15분 칸마다 <b>"평소"</b>(지난 평일 평균)와 오늘을 겹쳐 표시</td><td class='why'>학생에게 더 직관적인 표현</td></tr><tr><th>웹 공개 · 검증</th><td class='old'>PC · 모바일 웹으로 제공</td><td>교수님 승인 후 <b>학생에게 공개</b> (식당 QR · 에브리타임), 이용자가 <b>"실제랑 비슷했나요?"</b>에 직접 응답</td><td class='why'>실제 이용자 응답으로 정확도를 검증</td></tr><tr><th>배식대 영업</th><td class='old'>—</td><td>배식대별 영업 중 · 곧 마감 · 마감 표시 (금요일 조기 마감 반영)</td><td class='why'>가서 못 먹는 헛걸음 방지</td></tr></tbody>
   </table>
 
   <div class="same"><b>그대로인 것</b>시스템 구조, 영상은 기기 안에서만 처리하고 숫자만 전송, YOLO11n 사람 검출, 지난 평일 기록 기반 15분 단위 정보</div>
@@ -231,6 +236,7 @@ table.chg td b{color:var(--data)}
     <span>Tapo C200 × 4</span><i>→ RTSP →</i><span>Raspberry Pi 5<br><small>YOLO11n(NCNN) · 구역 · 테이블 판정</small></span><i>→ 숫자만 →</i><span>맥미니 서버<br><small>Flask · SQLite · 혼잡 계산</small></span><i>→</i><span>PC · 모바일 웹</span>
   </div>
 
+  <div class="pq">
   <div class="privacy">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
     <div>
@@ -241,8 +247,11 @@ table.chg td b{color:var(--data)}
         <li>저장한 이미지는 <b>설치 첫날(10/21) 모델 설정을 고르려고 확인한 정지 화면 8장</b>이 전부이며, 이후에는 저장하지 않습니다.</li>
         <li>YOLO11n은 <b>추가 학습 없이</b> 사전학습 모델을 그대로 써서, 학습용 영상도 모으지 않았습니다.</li>
         <li>전시 중 띄운 실시간 카메라 화면은 현장 확인용이며 저장하지 않습니다. 학생용 웹에는 숫자와 배치도만 나갑니다.</li>
+        <li>웹에서 받는 <b>의견 응답과 방문 수는 익명으로만</b> 저장합니다 (이름 · 연락처 · IP 저장 안 함).</li>
       </ul>
     </div>
+  </div>
+  <div class="qrcard"><svg class="qr" viewBox="0 0 290 290" class="segno"><path transform="scale(10)" class="qrline" stroke="#111418" d="M0 0.5h7m2 0h1m2 0h4m1 0h1m2 0h1m1 0h7m-29 1h1m5 0h1m1 0h1m1 0h1m1 0h1m2 0h1m1 0h1m2 0h1m1 0h1m5 0h1m-29 1h1m1 0h3m1 0h1m1 0h1m3 0h1m1 0h1m1 0h1m1 0h3m1 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m1 0h1m2 0h1m2 0h4m4 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m4 0h1m1 0h3m2 0h2m2 0h1m1 0h3m1 0h1m-29 1h1m5 0h1m2 0h2m2 0h2m5 0h1m1 0h1m5 0h1m-29 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-21 1h3m2 0h1m-14 1h1m5 0h1m1 0h2m2 0h1m1 0h2m1 0h1m1 0h4m2 0h3m-28 1h2m3 0h1m2 0h4m2 0h1m1 0h1m1 0h3m2 0h2m1 0h2m-28 1h1m2 0h5m2 0h1m1 0h1m2 0h2m6 0h2m-23 1h1m5 0h1m1 0h1m1 0h1m1 0h3m3 0h2m1 0h1m1 0h1m-24 1h3m1 0h1m1 0h1m1 0h5m1 0h1m1 0h1m1 0h1m1 0h2m4 0h1m-29 1h2m6 0h8m3 0h2m1 0h3m2 0h2m-28 1h1m2 0h1m1 0h1m1 0h1m2 0h1m1 0h3m2 0h1m1 0h1m1 0h1m2 0h2m-26 1h1m2 0h1m2 0h4m1 0h3m3 0h1m1 0h2m2 0h1m1 0h1m1 0h1m-28 1h2m2 0h3m1 0h1m2 0h1m1 0h6m5 0h2m-27 1h1m4 0h1m1 0h1m1 0h1m1 0h1m3 0h6m1 0h3m1 0h3m-29 1h2m2 0h1m1 0h2m1 0h1m3 0h3m3 0h1m1 0h1m2 0h2m2 0h1m-29 1h1m2 0h3m1 0h2m2 0h2m1 0h1m1 0h1m1 0h1m2 0h2m1 0h1m-25 1h1m4 0h2m3 0h2m3 0h1m1 0h1m2 0h5m1 0h3m-21 1h1m2 0h1m1 0h1m1 0h1m4 0h1m3 0h2m-26 1h7m2 0h2m1 0h4m3 0h2m1 0h1m1 0h3m-27 1h1m5 0h1m2 0h2m2 0h1m1 0h2m1 0h3m3 0h1m3 0h1m-29 1h1m1 0h3m1 0h1m6 0h1m2 0h1m2 0h7m1 0h2m-29 1h1m1 0h3m1 0h1m3 0h1m2 0h1m1 0h2m8 0h2m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h1m1 0h1m3 0h1m1 0h3m1 0h7m-28 1h1m5 0h1m3 0h1m4 0h1m3 0h1m1 0h1m3 0h2m1 0h1m-29 1h7m1 0h1m1 0h2m1 0h1m3 0h3m1 0h2m1 0h1m1 0h1"/></svg><b>지금 열어 보기</b><span>babmeok.tail976ee0.ts.net</span></div>
   </div>
 
   <div class="foot"><span>순천향대학교 캡스톤디자인 · 시범 운영 2026.10.20 ~ 11.05 · 평일 08:00–19:30</span><span>제35회 공과대학 학술제</span></div>
