@@ -478,7 +478,7 @@ function renderLatest(d){
   if (live()){
     if (sm && sm.total){
       setVal("seatMain", `빈 테이블 ${sm.empty}개`);
-      $("seatSub").textContent = `빈 좌석 약 ${sm.free_seats}석`;
+      $("seatSub").innerHTML = "&nbsp;";
     } else {
       setVal("seatMain", `약 ${Math.max(0, cap - d.people)}석`);
       $("seatSub").textContent = `좌석 ${cap}석에서 인원을 뺀 추정값`;
