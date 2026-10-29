@@ -385,8 +385,8 @@ const LAYOUT = {
     {kind:"wall",    label:"기둥", x:590, y:420, w:24, h:52},
     {kind:"wall",    label:"바 카운터", x:952, y:212, w:224, h:16},
     {kind:"wall",    label:"", x:640, y:272, w:140, h:6},
-    {kind:"cam", label:"cam4", x:138,  y:40,  w:0, h:0},
-    {kind:"cam", label:"cam2", x:740,  y:116, w:0, h:0},
+    {kind:"cam", label:"cam4", x:160,  y:88,  w:0, h:0, below:true},   /* 대한짜장 왼쪽 아래 꼭짓점 */
+    {kind:"cam", label:"cam2", x:820,  y:88,  w:0, h:0, below:true},   /* 하즈벤 오른쪽 아래 꼭짓점 */
     {kind:"cam", label:"cam3", x:150,  y:578, w:0, h:0},
     {kind:"cam", label:"cam1", x:1170, y:578, w:0, h:0}
   ],
@@ -523,7 +523,7 @@ function renderMap(states){
       const t = mk("text", {x: f.tx, y: f.ty}); t.style.textAnchor = f.anchor || "middle"; t.textContent = f.label; g.appendChild(t);
     } else if (f.kind === "cam"){
       g.appendChild(mk("circle", {cx: f.x, cy: f.y, r: 5}));
-      const t = mk("text", {x: f.x, y: f.y - 12}); t.textContent = f.label; g.appendChild(t);
+      const t = mk("text", {x: f.x, y: f.below ? f.y + 16 : f.y - 12}); t.textContent = f.label; g.appendChild(t);
     } else {
       g.appendChild(mk("rect", {x: f.x, y: f.y, width: f.w, height: f.h, rx: 4}));
       if (f.w >= 40 && f.h >= 14){
