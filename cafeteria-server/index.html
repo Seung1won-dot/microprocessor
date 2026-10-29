@@ -107,6 +107,18 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .kpi b{display:block;font-size:24px;line-height:32px;font-weight:600;margin:4px 0 2px;word-break:keep-all}
 .kpi p{margin:0;font-size:12px;line-height:16px;color:var(--muted);word-break:keep-all}
 .kpi p.kpi-note{margin-top:4px;color:var(--faint)}
+.counters{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 -32px;padding:14px 32px 18px;border-top:1px solid var(--border)}
+.counters > small{font-size:13px;color:var(--muted);margin-right:4px}
+.cchip{display:inline-flex;align-items:baseline;gap:6px;height:28px;padding:0 12px;border:1px solid var(--border);border-radius:999px;align-items:center;font-size:13px;white-space:nowrap}
+.cchip b{font-weight:600}
+.cchip span{color:var(--muted);font-variant-numeric:tabular-nums}
+.cchip.on{border-color:var(--ok-fill);background:var(--ok-bg)}
+.cchip.on span{color:var(--ok)}
+.cchip.soon span{color:var(--mid)}
+.cchip.off{background:var(--raised)}
+.cchip.off b{color:var(--faint);text-decoration:line-through}
+.map .fx.counter.closed rect{opacity:.45}
+.map .fx.counter.closed text{fill:var(--faint)}
 
 /* ── 예측 그래프 ── */
 .legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);margin-top:12px}
@@ -242,6 +254,7 @@ footer svg{flex:none}
   .occ-labels span:not(.m){display:none}
   .occ-labels .m{display:block;position:static;font-size:12px;line-height:16px;white-space:normal;word-break:keep-all}
   .kpis{grid-template-columns:minmax(0,1fr);margin:24px -16px 0}
+  .counters{margin:0 -16px;padding:12px 16px 16px}
   .kpi{padding:14px 16px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:baseline}
   .kpi+.kpi{border-left:0;border-top:1px solid var(--border)}
   .kpi small{grid-column:1}
@@ -324,6 +337,7 @@ footer svg{flex:none}
         <div class="kpi"><small>식당 예상 인원</small><b id="peopleMain" class="tnum dash">—</b><p>&nbsp;</p></div>
         <div class="kpi"><small>주문 대기 (키오스크)</small><b id="kioskMain" class="tnum dash">—</b><p id="kioskSub">&nbsp;</p><p class="kpi-note" id="kioskNote">19:00부터는 키오스크 카메라가 꺼져 알 수 없어요</p></div>
       </div>
+      <div class="counters" id="counters" aria-label="배식대 영업 상태"></div>
     </section>
 
     <section class="card full" id="chartCard">
@@ -479,7 +493,35 @@ let cap = 120, latest = null, slotData = null, todayRows = [], compareOn = false
 
 const Q = new URLSearchParams(location.search);
 const DEMO = Q.has("demo");
-const KIOSK_OFF = "19:00";             // 키오스크 카메라(cam4) 꺼지는 시각
+const KIOSK_OFF = "19:00";
+// 배식대 영업시간 (학생회관 안내 기준). fri: 금요일 마감
+const COUNTERS = [
+  {name: "대한짜장", open: "09:00", close: "19:00", fri: "17:00"},
+  {name: "수오미엔", open: "10:00", close: "19:30"},
+  {name: "하즈벤", open: "09:00", close: "19:00", fri: "14:00"},
+  {name: "공여사맛집", open: "08:00", close: "19:00", fri: "16:00"}
+];
+const weekday = () => DEMO && Q.get("dow") ? +Q.get("dow") : new Date().getDay();   // 0 일 … 5 금 6 토
+function counterState(c){
+  const d = weekday(), t = nowHM();
+  if (d === 0 || d === 6) return {st: "off", text: "주말 휴무"};
+  const close = d === 5 && c.fri ? c.fri : c.close;
+  if (t < c.open) return {st: "off", text: `${c.open} 시작`};
+  if (t >= close) return {st: "off", text: `${close} 마감`};
+  const soon = toMin(close) - toMin(t) <= 30;
+  return {st: soon ? "on soon" : "on", text: soon ? `곧 마감 · ${close}` : `~${close}`};
+}
+function renderCounters(){
+  const box = $("counters");
+  box.innerHTML = "<small>배식대</small>";
+  COUNTERS.forEach(c => {
+    const s = counterState(c), el = document.createElement("span");
+    el.className = "cchip " + s.st;
+    el.innerHTML = "<b></b><span></span>";
+    el.querySelector("b").textContent = c.name; el.querySelector("span").textContent = s.text;
+    box.appendChild(el);
+  });
+}             // 키오스크 카메라(cam4) 꺼지는 시각
 const hm = ts => ts.slice(11, 16);
 const toMin = s => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
 const addMin = (s, n) => { const v = toMin(s) + n; return `${String(Math.floor(v / 60)).padStart(2, "0")}:${String(v % 60).padStart(2, "0")}`; };
@@ -555,6 +597,7 @@ function renderLatest(d){
     $("kioskSub").textContent = d.open && ok ? "키오스크 카메라 연결 안 됨" : "운영 시간에 보여요";
   }
   renderSeats(d);
+  renderCounters();
   renderTrend();
 }
 
@@ -584,7 +627,9 @@ function renderMap(states){
     svg.appendChild(g);
   });
   (L.fixtures || []).forEach(f => {
-    const g = mk("g", {class: "fx " + f.kind});
+    const cc = f.kind === "counter" && COUNTERS.find(c => c.name === f.label);
+    const closed = cc && counterState(cc).st === "off";
+    const g = mk("g", {class: "fx " + f.kind + (closed ? " closed" : "")});
     if (f.kind === "curve"){
       g.appendChild(mk("path", {d: f.d, class: "edge"}));
       g.appendChild(mk("path", {d: f.d, class: "body"}));
@@ -599,7 +644,7 @@ function renderMap(states){
       g.appendChild(mk("rect", {x: f.x, y: f.y, width: f.w, height: f.h, rx: 4}));
       if (f.w >= 40 && f.h >= 14){
         const t = mk("text", {x: f.x + f.w / 2, y: f.y + f.h / 2, transform: f.h > f.w * 2 ? `rotate(-90 ${f.x + f.w / 2} ${f.y + f.h / 2})` : ""});
-        t.textContent = f.label; g.appendChild(t);
+        t.textContent = closed ? `${f.label} · ${counterState(cc).text}` : f.label; g.appendChild(t);
       } else if (f.label){ const t = mk("text", {x: f.x + f.w / 2, y: f.y - 8}); t.textContent = f.label; g.appendChild(t); }
     }
     svg.appendChild(g);
@@ -884,6 +929,7 @@ $("refresh").addEventListener("click", async () => {
   await loadLatest(); await loadSlow();
 });
 renderMap(null);
+renderCounters();
 loadLatest().then(loadSlow);
 setInterval(loadLatest, 10000);
 setInterval(loadSlow, 60000);
