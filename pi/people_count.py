@@ -360,9 +360,10 @@ class TableTracker:
             dq = self.hits.setdefault(tid, deque())
             if n > 0:
                 dq.append((now_t, n))
-                self.last_seen[tid] = now_t
             while dq and now_t - dq[0][0] > TBL_WIN:
                 dq.popleft()
+            if n > 0 and len(dq) >= 2:   # a single stray hit must not refresh the away/empty timer
+                self.last_seen[tid] = now_t
             since = now_t - self.last_seen.get(tid, -1e9)
             new = st
             if st == "empty" and len(dq) >= TBL_MIN_HITS:
