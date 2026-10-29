@@ -54,9 +54,10 @@ button.btn:active{transform:scale(.97)}
 button.btn:focus-visible{outline:2px solid var(--data);outline-offset:2px}
 @media (hover:hover) and (pointer:fine){button.btn:hover{background:var(--raised)}}
 .btn.icon{width:32px;padding:0;justify-content:center;color:var(--muted)}
-#themeBtn .sun{display:none}
-html[data-dark] #themeBtn .sun{display:block}
-html[data-dark] #themeBtn .moon{display:none}
+#themeBtn{font-weight:500;color:var(--muted)}
+#themeBtn .sun,#themeBtn .lbl-light{display:none}
+html[data-dark] #themeBtn .sun,html[data-dark] #themeBtn .lbl-light{display:inline}
+html[data-dark] #themeBtn .moon,html[data-dark] #themeBtn .lbl-dark{display:none}
 .btn.spin svg{animation:spin .6s linear}
 @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -243,9 +244,10 @@ footer svg{flex:none}
   </a>
   <div class="top-right">
     <span class="hours" id="hours">평일 08:00–19:30 운영</span>
-    <button class="btn icon" id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면 전환">
+    <button class="btn theme" id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면 전환">
       <svg class="moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
       <svg class="sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <span class="lbl-dark">다크 모드</span><span class="lbl-light">라이트 모드</span>
     </button>
   </div>
 </div></div>
@@ -641,6 +643,11 @@ function renderCompareSummary(s, curT, after){
 
 let viewStart = null, curStart = 0, curIdx = 0, slotMax = [], scaleTop = 0;     // viewStart: 사용자가 끌어 놓은 왼쪽 칸 (null = 지금 따라가기)
 const visCount = () => $("area").clientWidth < 520 ? 8 : 12;
+// 지금 칸 오른쪽에 앞으로 올 칸을 몇 개 보여 줄지 (넓은 화면 1시간, 좁은 화면 30분)
+const followStart = () => {
+  const vis = visCount(), ahead = vis >= 12 ? 4 : 2;
+  return Math.min(Math.max(0, slotData.slots.length - vis), Math.max(0, curIdx - (vis - 1 - ahead)));
+};
 
 function renderSlots(s){
   slotData = s;
@@ -701,7 +708,7 @@ function renderSlots(s){
   renderTrend();
 }
 
-// 칸 너비를 화면에 맞추고, 지금 칸이 오른쪽 끝에 오게 (사용자가 끌어 놓았으면 그 자리 유지)
+// 칸 너비를 화면에 맞추고, 지금 칸 뒤로 앞 시간이 조금 보이게 (사용자가 끌어 놓았으면 그 자리 유지)
 function layoutChart(){
   if (!slotData || !slotData.slots.length) return;
   const n = slotData.slots.length, vis = visCount(), cw = $("area").clientWidth / vis;
@@ -709,8 +716,7 @@ function layoutChart(){
   $("bars").querySelectorAll(".col").forEach(c => c.style.width = cw + "px");
   $("xlabels").querySelectorAll("span").forEach(c => c.style.width = cw + "px");
   const maxStart = Math.max(0, n - vis);
-  const follow = Math.min(maxStart, Math.max(0, curIdx - vis + 1));
-  setPan(viewStart == null ? follow : Math.min(maxStart, Math.max(0, viewStart)));
+  setPan(viewStart == null ? followStart() : Math.min(maxStart, Math.max(0, viewStart)));
 }
 function setPan(start){
   curStart = start;
@@ -759,8 +765,7 @@ let drag = null, swallowClick = false;
   const end = () => {
     if (drag && drag.moved){
       viewStart = Math.round(viewStart);
-      const vis = visCount(), follow = Math.min(Math.max(0, slotData.slots.length - vis), Math.max(0, curIdx - vis + 1));
-      if (viewStart === follow) viewStart = null;     // 지금 위치로 돌아오면 다시 따라가기
+      if (viewStart === followStart()) viewStart = null;     // 지금 위치로 돌아오면 다시 따라가기
       layoutChart(); area.classList.remove("drag"); swallowClick = true;
     }
     drag = null;

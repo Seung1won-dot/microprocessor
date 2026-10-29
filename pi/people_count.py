@@ -585,9 +585,10 @@ button:hover{background:var(--raised)}
 button:active{transform:scale(.97)}
 button:focus-visible{outline:2px solid var(--data);outline-offset:2px}
 .btn-icon{width:32px;padding:0;justify-content:center;color:var(--muted)}
-#themeBtn .sun{display:none}
-html[data-dark] #themeBtn .sun{display:block}
-html[data-dark] #themeBtn .moon{display:none}
+#themeBtn{font-weight:500;color:var(--muted)}
+#themeBtn .sun,#themeBtn .lbl-light{display:none}
+html[data-dark] #themeBtn .sun,html[data-dark] #themeBtn .lbl-light{display:inline}
+html[data-dark] #themeBtn .moon,html[data-dark] #themeBtn .lbl-dark{display:none}
 .wrap{max-width:1600px;margin:0 auto;padding:24px 24px 32px}
 h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01em}
 a{color:var(--data)}
@@ -628,9 +629,10 @@ body.edit #editbtn{border-color:var(--data);color:var(--data);background:var(--d
 <div class="topbar"><div class="in">
   <a class="mark" href="/"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>밥먹을래말래<span>관리 화면 · 실시간 인원 감지</span></a>
   <div class="top-right"><span class="pill" id="mode">-</span><span class="pill" id="temp"></span><span class="pill" id="clock"></span>
-    <button class="btn-icon" id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면 전환">
+    <button id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면 전환">
       <svg class="moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
       <svg class="sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <span class="lbl-dark">다크 모드</span><span class="lbl-light">라이트 모드</span>
     </button></div>
 </div></div>
 <div class="wrap">
@@ -841,9 +843,10 @@ button:hover{background:var(--raised)}
 button:active{transform:scale(.97)}
 button:focus-visible{outline:2px solid var(--data);outline-offset:2px}
 .btn-icon{width:32px;padding:0;justify-content:center;color:var(--muted)}
-#themeBtn .sun{display:none}
-html[data-dark] #themeBtn .sun{display:block}
-html[data-dark] #themeBtn .moon{display:none}
+#themeBtn{font-weight:500;color:var(--muted)}
+#themeBtn .sun,#themeBtn .lbl-light{display:none}
+html[data-dark] #themeBtn .sun,html[data-dark] #themeBtn .lbl-light{display:inline}
+html[data-dark] #themeBtn .moon,html[data-dark] #themeBtn .lbl-dark{display:none}
 .wrap{max-width:1600px;margin:0 auto;padding:24px 24px 32px}
 h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01em}
 a{color:var(--data)}
@@ -875,9 +878,10 @@ td.r{text-align:right}
 <div class="topbar"><div class="in">
   <a class="mark" href="/"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>밥먹을래말래<span>관리 화면 · 테이블 영역 설정</span></a>
   <div class="top-right"><a class="pill" href="/" style="text-decoration:none">← 카메라 화면</a>
-    <button class="btn-icon" id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면 전환">
+    <button id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면 전환">
       <svg class="moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
       <svg class="sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <span class="lbl-dark">다크 모드</span><span class="lbl-light">라이트 모드</span>
     </button></div>
 </div></div>
 <div class="wrap">
