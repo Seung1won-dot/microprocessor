@@ -325,7 +325,7 @@ def feedback():
             return jsonify(ok=False, error="too many"), 429
         _fb_last[cid] = now_t
         _fb_recent.append(now_t)
-    source = obj.get("source") if obj.get("source") in FEEDBACK_SOURCES else "button"
+    source = "team" if obj.get("team") else obj.get("source") if obj.get("source") in FEEDBACK_SOURCES else "button"
     snap = latest().get_json() or {}
     with db() as con:
         cur = con.execute("INSERT INTO feedback(ts, answer, level, free_pct, people, used_seats, open, cid, source) VALUES (?,?,?,?,?,?,?,?,?)",
@@ -360,6 +360,8 @@ def visit():
     if len(cid) < 8:
         return jsonify(ok=False), 400
     ref = str(obj.get("ref") or "")[:60]
+    if obj.get("team"):                                   # 팀 기기 (?team=1로 표시)는 세지 않음
+        return jsonify(ok=True, counted=False)
     now_t = time.time()
     with _visit_lock:
         _visit_recent[:] = [t for t in _visit_recent if now_t - t < 60]
@@ -379,55 +381,239 @@ def from_tailnet():
     return (request.remote_addr or "").startswith("100.")
 
 
+def _daily_rows():
+    """날짜별 요약 (팀 테스트 의견 제외). 최신 날짜가 위."""
+    with db() as con:
+        v = {r["day"]: r for r in con.execute("""SELECT day, COUNT(DISTINCT cid) u, COUNT(*) n,
+                    COUNT(DISTINCT CASE WHEN ref LIKE '%everytime%' THEN cid END) et FROM visits GROUP BY day""")}
+        f = {r["d"]: r for r in con.execute("""SELECT substr(ts, 1, 10) d, COUNT(*) n,
+                    SUM(answer = '맞아요') a0, SUM(answer = '더 붐볐어요') a1, SUM(answer = '더 한산했어요') a2,
+                    SUM(source = 'return') rt, SUM(text IS NOT NULL AND text != '') tx
+                    FROM feedback WHERE COALESCE(source, '') != 'team' GROUP BY d""")}
+    out = []
+    for d in sorted(set(v) | set(f), reverse=True):
+        vv, ff = v.get(d), f.get(d)
+        n = ff["n"] if ff else 0
+        out.append({"day": d, "weekday": "월화수목금토일"[datetime.date.fromisoformat(d).weekday()],
+                    "visitors": vv["u"] if vv else 0, "page_loads": vv["n"] if vv else 0, "from_everytime": vv["et"] if vv else 0,
+                    "feedback": n, "ok": ff["a0"] if ff else 0, "busier": ff["a1"] if ff else 0, "calmer": ff["a2"] if ff else 0,
+                    "ok_pct": round(ff["a0"] / n * 100) if n else None, "via_return": ff["rt"] if ff else 0, "comments": ff["tx"] if ff else 0})
+    return out
+
+
+def _csv(rows, header, keys, name):
+    import csv, io
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(header)
+    for r in rows:
+        w.writerow([r[k] if r[k] is not None else "" for k in keys])
+    return Response("﻿" + buf.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename={name}"})
+
+
+@app.get("/stats/daily.csv")
+def stats_daily_csv():
+    if not from_tailnet():
+        return Response("not found", status=404)
+    return _csv(_daily_rows(),
+                ["날짜", "요일", "방문자", "페이지 열기", "에브리타임 유입", "의견", "맞아요", "더 붐볐어요", "더 한산했어요", "맞아요 %", "돌아왔을 때 알림 응답", "한 줄 의견"],
+                ["day", "weekday", "visitors", "page_loads", "from_everytime", "feedback", "ok", "busier", "calmer", "ok_pct", "via_return", "comments"],
+                "babmeok_daily.csv")
+
+
+@app.get("/stats/feedback.csv")
+def stats_feedback_csv():
+    if not from_tailnet():
+        return Response("not found", status=404)
+    with db() as con:
+        rows = [dict(r) for r in con.execute("""SELECT ts, COALESCE(source, 'button') source, answer, text, level, free_pct, people, used_seats, open
+                                                FROM feedback ORDER BY id""")]
+    return _csv(rows, ["시각", "경로", "응답", "한 줄 의견", "그때 단계", "남은 비율 %", "인원", "사용 좌석", "운영 중"],
+                ["ts", "source", "answer", "text", "level", "free_pct", "people", "used_seats", "open"], "babmeok_feedback.csv")
+
+
 @app.get("/stats")
 def stats():
     """팀용 접속·의견 통계. Tailscale로 연결된 기기에서 http://<맥미니 Tailscale IP>:8000/stats 로만 열림."""
     if not from_tailnet():
         return Response("not found", status=404)
-    today = datetime.date.today().isoformat()
+    now = datetime.datetime.now()
+    today = now.date().isoformat()
+    sel = request.args.get("day") or today
+    try:
+        datetime.date.fromisoformat(sel)
+    except ValueError:
+        sel = today
+    daily = _daily_rows()
     with db() as con:
-        days = con.execute("""SELECT day, COUNT(DISTINCT cid) u, COUNT(*) n FROM visits
-                              GROUP BY day ORDER BY day DESC LIMIT 14""").fetchall()
-        hours = con.execute("""SELECT substr(ts, 12, 2) h, COUNT(DISTINCT cid) u, COUNT(*) n FROM visits
-                               WHERE day = ? GROUP BY h ORDER BY h""", (today,)).fetchall()
-        refs = con.execute("""SELECT CASE WHEN ref = '' THEN '(직접 · QR)' ELSE ref END r, COUNT(DISTINCT cid) u
+        hours = {r["h"]: r["u"] for r in con.execute("""SELECT CAST(substr(ts, 12, 2) AS INTEGER) h, COUNT(DISTINCT cid) u
+                                                          FROM visits WHERE day = ? GROUP BY h""", (sel,))}
+        refs = con.execute("""SELECT CASE WHEN ref = '' THEN '직접 입력 · QR' ELSE ref END r, COUNT(DISTINCT cid) u
                               FROM visits GROUP BY r ORDER BY u DESC LIMIT 8""").fetchall()
-        total = con.execute("SELECT COUNT(DISTINCT cid), COUNT(*) FROM visits").fetchone()
-        fb = con.execute("""SELECT COALESCE(source, 'button') s, answer, COUNT(*) n FROM feedback
-                            GROUP BY s, answer ORDER BY s, answer""").fetchall()
-        fb_level = con.execute("""SELECT level, answer, COUNT(*) n FROM feedback WHERE level IS NOT NULL
-                                  GROUP BY level, answer ORDER BY level, answer""").fetchall()
-        texts = con.execute("""SELECT ts, COALESCE(source, 'button'), answer, level, text FROM feedback
-                               WHERE text IS NOT NULL AND text != '' ORDER BY id DESC LIMIT 30""").fetchall()
+        total_u = con.execute("SELECT COUNT(DISTINCT cid) FROM visits").fetchone()[0]
+        fb = con.execute("SELECT COALESCE(source, 'button') s, level, answer FROM feedback").fetchall()
+        texts = con.execute("""SELECT ts, COALESCE(source, 'button') s, answer, level, text FROM feedback
+                               WHERE text IS NOT NULL AND text != '' AND COALESCE(source, '') != 'team' AND substr(ts, 1, 10) = ?
+                               ORDER BY id DESC""", (sel,)).fetchall()
+    by_day = {r["day"]: r for r in daily}
+    t_row, y_row = by_day.get(today), by_day.get((now.date() - datetime.timedelta(days=1)).isoformat())
+    s_row = by_day.get(sel)
+    real = [r for r in fb if r["s"] != "team"]
+    team_n = len(fb) - len(real)
+    ans_keys = ["맞아요", "더 붐볐어요", "더 한산했어요"]
+    ok_pct = round(sum(1 for r in real if r["answer"] == "맞아요") / len(real) * 100) if real else None
 
     def esc(v):
-        return (str(v if v is not None else "")).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        return str(v if v is not None else "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
-    def table(head, rows):
-        th = "".join(f"<th>{h}</th>" for h in head)
-        tr = "".join("<tr>" + "".join(f"<td>{esc(c)}</td>" for c in r) + "</tr>" for r in rows) or f"<tr><td colspan='{len(head)}' class='m'>아직 없어요</td></tr>"
-        return f"<table><tr>{th}</tr>{tr}</table>"
+    def bars(items, hl=None):
+        top = max([v for _, v in items] + [1])
+        return '<div class="vbars">' + "".join(
+            f'<div class="vb{" hl" if lab == hl else ""}" title="{esc(lab)} · {v}명"><span class="v">{v or ""}</span>'
+            f'<i style="height:{max(2, v / top * 100) if v else 0:.1f}%"></i><span class="l">{esc(lab)}</span></div>'
+            for lab, v in items) + "</div>"
 
-    src = {"button": "카드 버튼", "return": "돌아왔을 때 알림"}
-    today_row = next((r for r in days if r["day"] == today), None)
+    def hbars(items):
+        top = max([v for _, v in items] + [1])
+        return "".join(f'<div class="hb"><span class="hl">{esc(lab)}</span><span class="ht"><i style="width:{v / top * 100:.1f}%"></i></span>'
+                       f'<b>{v}명</b></div>' for lab, v in items) or '<p class="empty">아직 없어요</p>'
+
+    def stack(rows):
+        n = len(rows)
+        if not n:
+            return '<span class="st empty-st">응답 없음</span>'
+        return '<span class="st">' + "".join(
+            f'<i class="a{k}" style="width:{sum(1 for r in rows if r["answer"] == a) / n * 100:.1f}%"></i>' for k, a in enumerate(ans_keys)) + "</span>"
+
+    src_label = {"button": "카드 버튼", "return": "돌아왔을 때 알림"}
+    level_rows = "".join(f'<div class="lv-row"><span class="chip c-{lv}">{lv}</span>{stack([r for r in real if r["level"] == lv])}'
+                         f'<span class="cnt">{sum(1 for r in real if r["level"] == lv)}건</span></div>' for lv in ["여유", "보통", "혼잡"])
+    src_rows = "".join(f'<div class="lv-row"><span class="src">{src_label[s]}</span>{stack([r for r in real if r["s"] == s])}'
+                       f'<span class="cnt">{sum(1 for r in real if r["s"] == s)}건</span></div>' for s in ["button", "return"])
+    ans_cls = {"맞아요": "a0", "더 붐볐어요": "a1", "더 한산했어요": "a2"}
+    comments = "".join(
+        f'<li><div class="meta"><span>{esc(r[0][11:16])}</span><span class="chip c-{esc(r[3])}">{esc(r[3] or "-")}</span>'
+        f'<span class="ans {ans_cls.get(r[2], "")}">{esc(r[2])}</span><span class="via">{src_label.get(r[1], r[1])}</span></div>'
+        f'<p>{esc(r[4])}</p></li>' for r in texts) or '<p class="empty">이 날 남긴 한 줄 의견이 없어요</p>'
+    hrs = sorted(set(range(7, 21)) | set(hours))
+    pct = lambda v: f"{v}%" if v is not None else "—"
+    table_rows = "".join(
+        f'<tr class="{"sel" if r["day"] == sel else ""}" onclick="location.href=\'?day={r["day"]}\'">'
+        f'<td><a href="?day={r["day"]}">{r["day"][5:].replace("-", "/")}</a> <span class="wd">{r["weekday"]}</span></td>'
+        f'<td class="n"><b>{r["visitors"]}</b></td><td class="n">{r["page_loads"]}</td><td class="n">{r["from_everytime"]}</td>'
+        f'<td class="n"><b>{r["feedback"]}</b></td><td class="n g">{r["ok"]}</td><td class="n r">{r["busier"]}</td><td class="n b">{r["calmer"]}</td>'
+        f'<td class="n"><b>{pct(r["ok_pct"])}</b></td><td class="n">{r["via_return"]}</td><td class="n">{r["comments"]}</td></tr>'
+        for r in daily) or '<tr><td colspan="11" class="empty">아직 기록이 없어요</td></tr>'
+    sel_label = f'{sel[5:].replace("-", "/")}({"월화수목금토일"[datetime.date.fromisoformat(sel).weekday()]})'
+
+    def delta(a, b):
+        if b is None:
+            return ""
+        d = a - b
+        return f'<small class="{"up" if d > 0 else "down" if d < 0 else ""}">어제보다 {"+" if d > 0 else ""}{d}</small>'
+
     html = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>밥먹을래말래 · 팀 통계</title><meta http-equiv="refresh" content="60">
-<style>body{{font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif;margin:0;padding:24px;background:#f6f7f9;color:#111418}}
-h1{{font-size:22px;margin:0 0 4px}} h2{{font-size:16px;margin:24px 0 8px}} .m{{color:#5f6368}}
-.k{{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}} .k div{{background:#fff;border:1px solid #e6e8eb;border-radius:8px;padding:12px 16px;min-width:140px}}
-.k b{{display:block;font-size:26px;color:#2f6db5}} table{{border-collapse:collapse;background:#fff;border:1px solid #e6e8eb;border-radius:8px;min-width:320px}}
-th,td{{padding:6px 12px;border-bottom:1px solid #eef0f2;text-align:left;font-size:14px}} th{{color:#5f6368;font-weight:600}}</style></head><body>
-<h1>밥먹을래말래 · 팀 통계</h1><div class="m">팀 기기(Tailscale)에서만 열려요 · 1분마다 새로 고침 · 접속 수는 같은 기기를 1명으로 셉니다 (예시 화면 제외)</div>
-<div class="k"><div><span class="m">오늘 방문자</span><b>{today_row["u"] if today_row else 0}명</b></div>
-<div><span class="m">오늘 페이지 열기</span><b>{today_row["n"] if today_row else 0}회</b></div>
-<div><span class="m">누적 방문자</span><b>{total[0]}명</b></div>
-<div><span class="m">의견 응답</span><b>{sum(r["n"] for r in fb)}건</b></div></div>
-<h2>날짜별</h2>{table(["날짜", "방문자", "페이지 열기"], [(r["day"], r["u"], r["n"]) for r in days])}
-<h2>오늘 시간대별</h2>{table(["시", "방문자", "페이지 열기"], [(r["h"] + "시", r["u"], r["n"]) for r in hours])}
-<h2>어디서 들어왔나 (누적 방문자)</h2>{table(["들어온 곳", "방문자"], [(r["r"], r["u"]) for r in refs])}
-<h2>의견: 경로별</h2>{table(["경로", "응답", "건수"], [(src.get(r["s"], r["s"]), r["answer"], r["n"]) for r in fb])}
-<h2>의견: 화면 단계별</h2>{table(["그때 화면", "응답", "건수"], [(r["level"], r["answer"], r["n"]) for r in fb_level])}
-<h2>한 줄 의견 (최근 30개)</h2>{table(["시각", "경로", "응답", "그때 화면", "의견"], [(r[0][5:16].replace("T", " "), src.get(r[1], r[1]), r[2], r[3], r[4]) for r in texts])}
+<title>밥먹을래말래 · 팀 통계</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{{--ground:#f6f7f9;--surface:#fff;--raised:#f7f8fa;--border:#e6e8eb;--rule:#eef0f2;--text:#111418;--muted:#5f6368;--faint:#80868b;
+--data:#2f6db5;--data-2:#9db8de;--data-tint:#eaf1fa;--ok:#247b50;--ok-fill:#2f9e63;--ok-bg:#e4f4ea;--mid:#92400e;--mid-bg:#fdf3e1;--busy:#c4242a;--busy-fill:#d64545;--busy-bg:#fdeaea;--calm:#2f6db5}}
+*{{box-sizing:border-box}}
+body{{margin:0;background:var(--ground);color:var(--text);font-family:Pretendard,-apple-system,"Malgun Gothic",sans-serif;font-size:14px;line-height:20px;word-break:keep-all}}
+.wrap{{max-width:1100px;margin:0 auto;padding:24px 20px 40px}}
+header{{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}}
+h1{{margin:0;font-size:22px;line-height:30px}} h1 span{{color:var(--data)}}
+.sub{{color:var(--muted);font-size:13px}}
+.dl{{display:flex;gap:8px;flex-wrap:wrap}} .dl a{{display:inline-flex;align-items:center;height:32px;padding:0 12px;border:1px solid #d1d5db;border-radius:6px;background:#fff;color:var(--text);text-decoration:none;font-weight:600;font-size:13px}}
+.dl a:hover{{background:var(--raised)}}
+.grid{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}}
+.card{{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;min-width:0}}
+.kpi small{{display:block;color:var(--muted);font-size:13px}}
+.kpi b{{display:block;font-size:30px;line-height:38px;font-weight:700;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}}
+.kpi small.up{{color:var(--ok);font-weight:600}} .kpi small.down{{color:var(--busy);font-weight:600}}
+.kpi.main b{{color:var(--data)}}
+.row2{{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-top:12px}}
+.row1{{margin-top:12px}}
+h2{{margin:0 0 12px;font-size:15px;line-height:22px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}}
+h2 span{{font-weight:400;color:var(--muted);font-size:12px}}
+.tbl{{overflow-x:auto}}
+table{{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:13px;min-width:760px}}
+th{{text-align:right;color:var(--muted);font-weight:600;font-size:12px;padding:8px 10px;border-bottom:1.5px solid var(--text);white-space:nowrap}}
+th:first-child,td:first-child{{text-align:left}}
+td{{padding:9px 10px;border-bottom:1px solid var(--rule);white-space:nowrap}}
+td.n{{text-align:right}} td.g{{color:var(--ok)}} td.r{{color:var(--busy)}} td.b{{color:var(--calm)}}
+tr{{cursor:pointer}} tbody tr:hover td{{background:var(--raised)}}
+tr.sel td{{background:var(--data-tint)}}
+td a{{color:var(--text);font-weight:700;text-decoration:none}} .wd{{color:var(--faint);font-size:12px}}
+th.grp{{text-align:center;border-bottom:1px solid var(--border);color:var(--faint);font-weight:500}}
+.vbars{{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:18px}}
+.vb{{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}}
+.vb i{{display:block;width:100%;max-width:34px;background:var(--data-2);border-radius:4px 4px 0 0}}
+.vb.hl i{{background:var(--data)}}
+.vb .v{{font-size:11px;color:var(--muted);height:16px}} .vb .l{{font-size:11px;color:var(--faint);margin-top:4px;white-space:nowrap}}
+.hb{{display:grid;grid-template-columns:130px minmax(0,1fr) 48px;align-items:center;gap:10px;height:30px}}
+.hb .hl{{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}}
+.ht{{height:10px;background:var(--rule);border-radius:999px;overflow:hidden}} .ht i{{display:block;height:100%;background:var(--data);border-radius:999px}}
+.hb b{{text-align:right}}
+.legend{{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:0 0 10px}}
+.legend i{{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}}
+.lv-row{{display:grid;grid-template-columns:110px minmax(0,1fr) 44px;align-items:center;gap:10px;height:34px}}
+.st{{display:flex;height:14px;border-radius:999px;overflow:hidden;background:var(--rule)}} .st i{{display:block;height:100%}}
+.empty-st{{background:none;color:var(--faint);font-size:12px;height:auto}}
+.a0{{background:var(--ok-fill)}} .a1{{background:var(--busy-fill)}} .a2{{background:var(--calm)}}
+.cnt{{text-align:right;color:var(--muted)}}
+.chip{{display:inline-flex;justify-content:center;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;width:max-content}}
+.c-여유{{background:var(--ok-bg);color:var(--ok)}} .c-보통{{background:var(--mid-bg);color:var(--mid)}} .c-혼잡{{background:var(--busy-bg);color:var(--busy)}}
+.src{{color:var(--muted);font-size:13px}}
+.note{{margin:10px 0 0;font-size:12px;color:var(--faint)}}
+ul.cm{{list-style:none;margin:0;padding:0 4px 0 0;max-height:340px;overflow-y:auto}} ul.cm li{{padding:10px 0;border-top:1px solid var(--rule)}} ul.cm li:first-child{{border-top:0;padding-top:0}}
+.meta{{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--faint)}}
+.ans{{font-weight:700}} .ans.a0{{background:none;color:var(--ok)}} .ans.a1{{background:none;color:var(--busy)}} .ans.a2{{background:none;color:var(--calm)}}
+ul.cm p{{margin:4px 0 0}} .empty{{color:var(--faint);margin:0}}
+.how{{margin-top:12px;font-size:12px;color:var(--muted);background:var(--raised);border:1px dashed var(--border);border-radius:8px;padding:10px 14px}}
+.how code{{background:#fff;border:1px solid var(--border);border-radius:4px;padding:1px 5px}}
+@media (max-width:820px){{.grid{{grid-template-columns:repeat(2,minmax(0,1fr))}}.row2{{grid-template-columns:minmax(0,1fr)}}.hb{{grid-template-columns:100px minmax(0,1fr) 40px}}}}
+</style></head><body><div class="wrap">
+<header><div><h1><span>밥먹을래말래</span> · 팀 통계</h1><div class="sub">팀 기기(Tailscale)에서만 열려요 · {now.strftime("%m/%d %H:%M")} 기준 · 1분마다 새로 고침</div></div>
+<div class="dl"><a href="/stats/daily.csv">날짜별 요약 CSV</a><a href="/stats/feedback.csv">의견 원본 CSV</a></div></header>
+
+<section class="grid">
+  <div class="card kpi main"><small>오늘 방문자</small><b>{t_row["visitors"] if t_row else 0}명</b>{delta(t_row["visitors"] if t_row else 0, y_row["visitors"] if y_row else None)}</div>
+  <div class="card kpi"><small>누적 방문자</small><b>{total_u}명</b><small>기록한 날 {len(daily)}일</small></div>
+  <div class="card kpi"><small>의견 응답 (누적)</small><b>{len(real)}건</b><small>오늘 {t_row["feedback"] if t_row else 0}건</small></div>
+  <div class="card kpi"><small>"맞아요" 비율 (누적)</small><b style="color:var(--ok)">{pct(ok_pct)}</b><small>화면이 실제와 비슷했다는 응답</small></div>
+</section>
+
+<section class="row1 card"><h2>날짜별 정리 <span>날짜를 누르면 아래에 그날 자세히 · 팀 테스트 제외</span></h2>
+<div class="tbl"><table>
+<thead><tr><th></th><th class="grp" colspan="3">방문</th><th class="grp" colspan="5">의견</th><th class="grp" colspan="2">응답 방식</th></tr>
+<tr><th>날짜</th><th>방문자</th><th>페이지 열기</th><th>에타 유입</th><th>의견</th><th>맞아요</th><th>더 붐볐어요</th><th>더 한산했어요</th><th>맞아요 %</th><th>돌아왔을 때</th><th>한 줄 의견</th></tr></thead>
+<tbody>{table_rows}</tbody></table></div></section>
+
+<section class="row2">
+  <div class="card"><h2>{sel_label} 시간대별 방문자 <span>같은 기기는 1명</span></h2>{bars([(f"{h}시", hours.get(h, 0)) for h in hrs], hl=f"{now.hour}시" if sel == today else None)}
+    <p class="note">이 날: 방문자 {s_row["visitors"] if s_row else 0}명 · 의견 {s_row["feedback"] if s_row else 0}건 · 맞아요 {pct(s_row["ok_pct"]) if s_row else "—"}</p></div>
+  <div class="card"><h2>{sel_label} 한 줄 의견 <span>{len(texts)}개</span></h2><ul class="cm">{comments}</ul></div>
+</section>
+
+<section class="row2">
+  <div class="card">
+    <h2>화면이 실제와 맞았나 <span>누적 · 그때 화면 단계별</span></h2>
+    <div class="legend"><span><i class="a0"></i>맞아요</span><span><i class="a1"></i>더 붐볐어요 (실제가 더 붐빔)</span><span><i class="a2"></i>더 한산했어요 (실제가 더 한산)</span></div>
+    {level_rows}
+    <p class="note">예: "혼잡"일 때 "더 한산했어요"가 많으면 혼잡 기준이 너무 빡빡하다는 뜻이에요.</p>
+  </div>
+  <div class="card">
+    <h2>어떻게 응답했나 <span>누적 · 경로별</span></h2>{src_rows}
+    <p class="note">"돌아왔을 때 알림"은 사이트를 보고 나갔다가 5~90분 뒤 돌아온 사람, 즉 실제로 다녀왔을 가능성이 높은 응답이에요.{f" 팀 테스트 응답 {team_n}건은 제외했어요." if team_n else ""}</p>
+    <h2 style="margin-top:16px">어디서 들어왔나 <span>누적 방문자</span></h2>{hbars([(r["r"], r["u"]) for r in refs])}
+  </div>
+</section>
+
+<div class="how">우리 기기의 방문·의견을 빼려면 각 기기에서 한 번만 <code>https://babmeok.tail976ee0.ts.net/?team=1</code> 을 열어 두세요. 그 기기의 방문은 세지 않고, 의견은 "팀 테스트"로 따로 저장돼요.</div>
+</div>
+<script>setTimeout(() => location.reload(), 60000);</script>
 </body></html>"""
     return Response(html, mimetype="text/html")
 

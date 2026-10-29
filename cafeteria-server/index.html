@@ -595,6 +595,9 @@ function clientId(){
   if (!c){ c = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)); store.set("fb_cid", c); }
   return c;
 }
+// 팀 기기 표시: 한 번 ?team=1 로 열면 그 기기의 방문은 세지 않고, 의견은 "팀 테스트"로 따로 저장
+if (Q.has("team")) store.set("team", "1");
+const isTeam = () => store.get("team") === "1";
 const answeredRecently = () => Date.now() - (+store.get("fb_last") || 0) < FB_GAP;
 function renderFeedback(){
   $("fb").hidden = !live();
@@ -604,7 +607,7 @@ function renderFeedback(){
   if (recent) $("fbThanks").textContent = "의견 고마워요! 10분 뒤에 다시 남길 수 있어요.";
 }
 async function postFeedback(body){
-  const r = await fetch("/api/feedback", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({cid: clientId(), ...body})});
+  const r = await fetch("/api/feedback", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({cid: clientId(), team: isTeam(), ...body})});
   return {status: r.status, data: await r.json().catch(() => ({}))};
 }
 // 두 경로 공통: 보내고, 카드 아래 칸을 "고마워요 + 한 줄 의견" 상태로
@@ -1136,7 +1139,7 @@ renderCounters();
 if (!DEMO){
   let ref = "";
   try { const u = new URL(document.referrer); if (u.host !== location.host) ref = u.host; } catch (e) {}
-  fetch("/api/visit", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({cid: clientId(), ref})}).catch(() => {});
+  fetch("/api/visit", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({cid: clientId(), ref, team: isTeam()})}).catch(() => {});
 }
 loadLatest().then(() => {
   if (!store.get("tour_done") && !Q.has("notour")) setTimeout(startTour, 500);
