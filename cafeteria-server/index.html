@@ -165,7 +165,7 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .map .seat.occ text{fill:var(--on-data)}
 .map .seat.away text{fill:var(--mid)}
 .map .seat.unm text,.map .seat.idle text{fill:var(--faint)}
-.seat-info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 32px;margin-top:24px;padding-top:24px;border-top:1px solid var(--rule)}
+.seat-info{display:grid;grid-template-columns:minmax(0,1fr);gap:24px 32px;margin-top:24px;padding-top:24px;border-top:1px solid var(--rule)}
 .seat-info h3{margin:0 0 12px;font-size:14px;font-weight:600}
 .zone-row{display:grid;grid-template-columns:56px minmax(0,1fr) 48px;align-items:center;gap:12px;height:36px}
 .zone-row span:first-child{color:var(--muted)}
@@ -176,6 +176,7 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .kv dt{color:var(--muted)}
 .kv dd{margin:0;word-break:keep-all}
 .tlegend{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:20px;align-content:start;gap:8px 16px;color:var(--text)}
+.tlegend.map-legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:12px;padding:0 4px;font-size:12px;color:var(--muted)}
 .tlegend span{display:flex;align-items:center;white-space:nowrap}
 .tlegend i{flex:none;width:14px;height:10px;border-radius:3px;margin-right:8px;border:1.5px solid var(--map-line);background:var(--seat-bg)}
 .tlegend i.emp{border-color:var(--data)}
@@ -251,7 +252,7 @@ footer svg{flex:none}
       </div>
       <div class="kpis">
         <div class="kpi"><small>빈 자리</small><b id="seatMain" class="tnum dash">—</b><p id="seatSub">&nbsp;</p></div>
-        <div class="kpi"><small>식당 안</small><b id="peopleMain" class="tnum dash">—</b><p id="peopleSub">&nbsp;</p></div>
+        <div class="kpi"><small>식당 예상 인원</small><b id="peopleMain" class="tnum dash">—</b><p>&nbsp;</p></div>
         <div class="kpi"><small>주문 대기 (키오스크)</small><b id="kioskMain" class="tnum dash">—</b><p id="kioskSub">&nbsp;</p></div>
         <div class="kpi" id="later"><small id="laterLabel">덜 붐비는 시간</small><b id="laterTitle" class="tnum dash">—</b><p id="laterSub">&nbsp;</p></div>
       </div>
@@ -284,20 +285,12 @@ footer svg{flex:none}
     <section class="card full" id="seats">
       <div class="card-head"><h2>자리 현황</h2><span class="meta tnum" id="seatSum"></span></div>
       <div class="map" id="map"></div>
+      <div class="tlegend map-legend">
+        <span><i class="emp"></i>빈 자리</span><span><i class="occ"></i>사용 중</span>
+        <span><i class="away"></i>자리 비움</span><span><i class="unm"></i>측정 안 됨</span>
+        <span><i class="blind"></i>카메라 밖 (집계 제외)</span>
+      </div>
       <div class="seat-info">
-        <section>
-          <h3>카메라 구역별 인원</h3>
-          <div class="tnum" id="zones"></div>
-          <div class="empty-box" id="zonesEmpty">운영 시간에 구역별 인원이 보여요.</div>
-        </section>
-        <section id="tlegendBox">
-          <h3>자리 표시</h3>
-          <div class="tlegend">
-            <span><i class="emp"></i>빈 자리</span><span><i class="occ"></i>사용 중</span>
-            <span><i class="away"></i>자리 비움</span><span><i class="unm"></i>측정 안 됨</span>
-            <span><i class="blind"></i>카메라 밖 (집계 제외)</span>
-          </div>
-        </section>
         <section>
           <h3>식당 정보</h3>
           <dl class="kv">
@@ -344,7 +337,9 @@ const LAYOUT = {
   ],
   blind:[
     {label:"1인석 9자리 · 카메라 밖", x:20, y:258, w:64, h:300},
-    {label:"카메라 밖", x:586, y:268, w:32, h:280}
+    {label:"카메라 밖", x:586, y:268, w:32, h:280},
+    {label:"카메라 밖", x:1026, y:468, w:150, h:56},   /* T7 · T10 뒤 */
+    {label:"카메라 밖", x:952, y:528, w:224, h:52}     /* T4 뒤 · 구역 1 아래쪽 */
   ],
   fixtures:[
     {kind:"counter", label:"대한짜장",  x:140, y:16, w:200, h:72},
@@ -370,10 +365,10 @@ const LAYOUT = {
     T41:{x:112,y:486,w:60,h:46,c:4}, T42:{x:184,y:486,w:88,h:46,c:6}, T43:{x:284,y:486,w:40,h:46,c:2}, T44:{x:336,y:486,w:60,h:46,c:4}, T45:{x:408,y:486,w:40,h:46,c:2}, T46:{x:460,y:486,w:40,h:46,c:2}, T47:{x:512,y:486,w:40,h:46,c:2},
     /* 구역 2 (cam2, 하즈벤 간판 위) — 앞줄 T18·T17·T16·T11 (아래 작은 벽), 세로줄 T12~15 / T19~23 / T24~27 */
     T18:{x:644,y:232,w:60,h:46,c:4}, T17:{x:716,y:232,w:60,h:46,c:4}, T16:{x:788,y:232,w:60,h:46,c:4}, T11:{x:860,y:232,w:40,h:46,c:2},
-    T12:{x:644,y:296,w:60,h:46,c:4}, T19:{x:716,y:296,w:60,h:46,c:4}, T24:{x:788,y:296,w:60,h:46,c:4},
-    T13:{x:644,y:354,w:40,h:46,c:2}, T20:{x:716,y:354,w:40,h:46,c:2}, T25:{x:788,y:354,w:60,h:46,c:4},
-    T14:{x:644,y:412,w:40,h:46,c:2}, T21:{x:716,y:412,w:40,h:46,c:2}, T26:{x:788,y:412,w:60,h:46,c:4},
-    T15:{x:644,y:470,w:40,h:46,c:2}, T22:{x:716,y:470,w:40,h:46,c:2}, T27:{x:788,y:470,w:40,h:46,c:2},
+    T24:{x:644,y:296,w:60,h:46,c:4}, T19:{x:716,y:296,w:60,h:46,c:4}, T12:{x:788,y:296,w:60,h:46,c:4},
+    T25:{x:644,y:354,w:60,h:46,c:4}, T20:{x:716,y:354,w:40,h:46,c:2}, T13:{x:788,y:354,w:40,h:46,c:2},
+    T26:{x:644,y:412,w:60,h:46,c:4}, T21:{x:716,y:412,w:40,h:46,c:2}, T14:{x:788,y:412,w:40,h:46,c:2},
+    T27:{x:644,y:470,w:40,h:46,c:2}, T22:{x:716,y:470,w:40,h:46,c:2}, T15:{x:788,y:470,w:40,h:46,c:2},
     T23:{x:716,y:528,w:40,h:46,c:2},
     /* 구역 1 (cam1) — 세로줄: T1~T4 / T5~T7 / T8~T10, S는 바 카운터 1인석 */
     S1:{x:960,y:206,w:34,h:30,c:1}, S2:{x:1016,y:206,w:34,h:30,c:1}, S3:{x:1072,y:206,w:34,h:30,c:1}, S4:{x:1128,y:206,w:34,h:30,c:1},
@@ -431,7 +426,6 @@ function renderLatest(d){
     }
     $("seatMain").style.color = STATUS_TXT[d.level] || "";
     setVal("peopleMain", `${d.people}명`);
-    $("peopleSub").textContent = `좌석 ${cap}석의 약 ${Math.round(d.people / cap * 100)}% · 카메라 ${Object.keys(d.cams || {}).length}대 합계`;
     // 게이지: 자리 판정이 있으면 "자리" 기준(혼잡 단계와 같은 기준), 없으면 좌석 대비 인원
     $("occ").hidden = false;
     const f = $("occFill");
@@ -447,7 +441,7 @@ function renderLatest(d){
     f.style.background = STATUS[d.level];
   } else {
     setVal("seatMain", null); $("seatSub").innerHTML = "&nbsp;"; $("seatMain").style.color = "";
-    setVal("peopleMain", null); $("peopleSub").innerHTML = "&nbsp;";
+    setVal("peopleMain", null);
     $("occ").hidden = true;
   }
   const k = d.kiosk;
@@ -526,19 +520,7 @@ function renderSeats(d){
   } else {
     $("seatSum").textContent = d && live() ? "자리별 판정 준비 중" : "";
     renderMap(null);
-    $("seatNote").textContent = d && live() ? "자리별 상태는 준비 중이에요. 지금은 카메라 구역별 인원을 보여줘요." : "운영 시간에 자리별 상태가 보여요. 빗금 친 곳은 카메라가 안 보이는 곳이에요.";
-  }
-  const z = $("zones"); z.innerHTML = "";
-  const has = d && live() && d.cams;
-  $("zonesEmpty").hidden = !!has;
-  if (has){
-    const vals = Object.values(d.cams).map(v => v || 0), top = Math.max(1, ...vals);
-    Object.keys(d.cams).sort().forEach((k, i) => {
-      const v = d.cams[k], w = Math.round((v || 0) / top * 100);
-      const row = document.createElement("div"); row.className = "zone-row";
-      row.innerHTML = `<span>구역 ${i + 1}</span><span class="zbar"><b style="width:${w}%"></b></span><em>${v == null ? "—" : v + "명"}</em>`;
-      z.appendChild(row);
-    });
+    $("seatNote").textContent = d && live() ? "자리별 상태는 준비 중이에요." : "운영 시간에 자리별 상태가 보여요. 빗금 친 곳은 카메라가 안 보이는 곳이에요.";
   }
 }
 
