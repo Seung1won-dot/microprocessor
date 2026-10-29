@@ -43,9 +43,9 @@ body{margin:0;background:var(--ground);color:var(--text);font-family:Pretendard,
 /* ── 상단 바 ── */
 .topbar{height:56px;background:var(--surface);border-bottom:1px solid var(--border)}
 .topbar .in{max-width:1248px;height:100%;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-.mark{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:var(--text);text-decoration:none}
+.mark{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:800;letter-spacing:-.02em;color:var(--text);text-decoration:none;white-space:nowrap;min-width:0}
 .mark svg{color:var(--data);flex:none}
-.mark span{font-weight:400;color:var(--muted);font-size:14px;margin-left:6px}
+.mark span{font-weight:400;color:var(--muted);font-size:14px;margin-left:6px;letter-spacing:0}
 .top-right{display:flex;align-items:center;gap:16px}
 .hours{color:var(--muted)}
 button.btn{height:32px;padding:0 12px;border:1px solid var(--control);background:var(--surface);border-radius:var(--r-ctl);font:inherit;font-weight:600;color:var(--text);
@@ -54,7 +54,7 @@ button.btn:active{transform:scale(.97)}
 button.btn:focus-visible{outline:2px solid var(--data);outline-offset:2px}
 @media (hover:hover) and (pointer:fine){button.btn:hover{background:var(--raised)}}
 .btn.icon{width:32px;padding:0;justify-content:center;color:var(--muted)}
-#themeBtn{font-weight:500;color:var(--muted)}
+#themeBtn{font-weight:500;color:var(--muted);white-space:nowrap;flex:none}
 #themeBtn .sun,#themeBtn .lbl-light{display:none}
 html[data-dark] #themeBtn .sun,html[data-dark] #themeBtn .lbl-light{display:inline}
 html[data-dark] #themeBtn .moon,html[data-dark] #themeBtn .lbl-dark{display:none}
@@ -98,6 +98,7 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .occ-labels span{position:absolute;top:0;white-space:nowrap}
 .occ-labels .r{right:0}
 .occ-labels .t{transform:translateX(-50%)}
+.occ-labels .m{display:none}
 
 .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:28px -32px 0;border-top:1px solid var(--border)}
 .kpi{padding:20px 32px 24px;min-width:0}
@@ -128,7 +129,7 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .col{flex:1;min-width:0;position:relative;height:100%;cursor:pointer}
 .col::before{content:"";position:absolute;inset:0;border-radius:4px;background:transparent;transition:background-color 120ms ease}
 .col.on::before{background:var(--grid-ink)}
-.usual{position:absolute;left:5%;right:5%;bottom:0;border-radius:3px 3px 0 0;background:var(--usual);pointer-events:none;
+.col .usual{position:absolute;left:5%;right:5%;bottom:0;border-radius:3px 3px 0 0;background:var(--usual);pointer-events:none;
   height:min(100%, calc(var(--v) / var(--top) * 100%));transition:height 250ms var(--ease-out)}
 .tip{position:absolute;top:0;z-index:2;min-width:132px;padding:8px 12px;border-radius:var(--r-ctl);background:var(--text);color:var(--surface);
   font-size:12px;line-height:18px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.16)}
@@ -171,6 +172,7 @@ details.fold .fold-body{padding:0 24px 24px}
 
 /* ── 자리 현황 ── */
 .map{background:var(--raised);border-radius:var(--r-card);padding:8px}
+.map-hint{display:none;margin:0 0 8px;font-size:12px;color:var(--muted);text-align:center}
 .map svg{width:100%;height:auto;display:block}
 .map .room{fill:var(--seat-bg);stroke:var(--map-line)}
 .map .zone rect{fill:none;stroke:var(--map-line);stroke-dasharray:4 4;stroke-width:1.2}
@@ -224,14 +226,44 @@ footer p{margin:0;display:flex;gap:8px;align-items:flex-start;word-break:keep-al
 footer svg{flex:none}
 
 @media (prefers-reduced-motion:reduce){.bar,.band,.usual,.now-tag{transition:none}}
+/* 휴대폰 */
+#rangeBtn{display:none}
+@media (max-width:600px){
+  .topbar .in,.wrap,footer{padding-left:16px;padding-right:16px}
+  .wrap{padding-top:20px}
+  .mark span,.hours{display:none}
+  .mark{font-size:20px}
+  .grid{gap:16px}
+  .card{padding:20px 16px}
+  .answer{padding:24px 16px 0}
+  .say strong{font-size:26px;line-height:34px}
+  .answer .lead{font-size:15px}
+  .occ-labels{height:auto}
+  .occ-labels span:not(.m){display:none}
+  .occ-labels .m{display:block;position:static;font-size:12px;line-height:16px;white-space:normal;word-break:keep-all}
+  .kpis{grid-template-columns:minmax(0,1fr);margin:24px -16px 0}
+  .kpi{padding:14px 16px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:baseline}
+  .kpi+.kpi{border-left:0;border-top:1px solid var(--border)}
+  .kpi small{grid-column:1}
+  .kpi b{grid-column:2;grid-row:1 / span 3;margin:0;font-size:22px;text-align:right;align-self:center}
+  .kpi p{grid-column:1}
+  .card-head{flex-wrap:wrap;row-gap:12px}
+  #chartCard .card-head h2{width:100%}
+  .head-actions{width:100%;justify-content:space-between;flex-wrap:wrap;row-gap:8px}
+  #rangeBtn{display:inline-flex}
+  .map-hint{display:block}
+  .map{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+  .map svg{width:980px;max-width:none}
+  .tlegend.map-legend{gap:6px 14px}
+  details.fold summary{padding:16px}
+  details.fold .fold-body{padding:0 16px 16px}
+  .privacy{padding:16px}
+}
 @media (prefers-reduced-motion:reduce){.btn.spin svg{animation:none}button.btn,.occ-fill,.zbar b{transition:none}}
 /* 좁은 창: 한 줄로 쌓기 */
 @media (max-width:1100px){
   .grid{grid-template-columns:minmax(0,1fr)}
   .about{grid-template-columns:minmax(0,1fr)}
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .kpi:nth-child(3){border-left:0}
-  .kpi:nth-child(n+3){border-top:1px solid var(--border)}
   .title-row{flex-direction:column;align-items:flex-start}
   footer{flex-direction:column;gap:8px}
 }
@@ -240,7 +272,7 @@ footer svg{flex:none}
 <body>
 <div class="topbar"><div class="in">
   <a class="mark" href="/" aria-label="밥먹을래말래 홈">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>
     밥먹을래말래<span>캠퍼스 식당 실시간 혼잡도</span>
   </a>
   <div class="top-right">
@@ -284,6 +316,7 @@ footer svg{flex:none}
           <span class="t" id="t70" style="left:70%"></span>
           <span class="t" id="t90" style="left:90%"></span>
           <span class="r" id="capLabel"></span>
+          <span class="m" id="occMobile"></span>
         </div>
       </div>
       <div class="kpis">
@@ -302,6 +335,7 @@ footer svg{flex:none}
             <span><i class="usual"></i>평소</span>
             <span id="spanLegend" hidden><i class="span"></i>평소 범위</span>
           </div>
+          <button class="btn toggle" id="rangeBtn" type="button" aria-pressed="false">하루 전체</button>
           <button class="btn toggle" id="cmpBtn" type="button" aria-pressed="false">평소와 비교</button>
         </div>
       </div>
@@ -328,6 +362,7 @@ footer svg{flex:none}
 
     <section class="card full" id="seats">
       <div class="card-head"><h2>자리 현황</h2><span class="meta tnum" id="seatSum"></span></div>
+      <p class="map-hint">← 배치도를 좌우로 밀어서 볼 수 있어요 →</p>
       <div class="map" id="map"></div>
       <div class="tlegend map-legend">
         <span><i class="emp"></i>빈 자리</span><span><i class="occ"></i>사용 중</span>
@@ -493,10 +528,12 @@ function renderLatest(d){
       f.style.width = Math.min(100, d.used_seats / cap * 100) + "%";
       $("t70").textContent = `보통 ${Math.ceil(cap * .7)}석~`; $("t90").textContent = `혼잡 ${Math.ceil(cap * .9)}석~`;
       $("capLabel").textContent = `${cap}석`;
+      $("occMobile").textContent = `사용 ${d.used_seats}석 / 전체 ${cap}석 · 보통 ${Math.ceil(cap * .7)}석~ · 혼잡 ${Math.ceil(cap * .9)}석~`;
     } else {
       f.style.width = Math.min(100, 100 - (d.free_pct || 0)) + "%";
       $("t70").textContent = `보통 ${Math.round(cap * .7)}명~`; $("t90").textContent = `혼잡 ${Math.round(cap * .9)}명~`;
       $("capLabel").textContent = `${cap}석`;
+      $("occMobile").textContent = `좌석 ${cap}석 기준 · 보통 ${Math.round(cap * .7)}명~ · 혼잡 ${Math.round(cap * .9)}명~`;
     }
     f.style.background = STATUS[d.level];
   } else {
@@ -641,7 +678,9 @@ function renderCompareSummary(s, curT, after){
     : `${when} 약 <b>${round(ref.actual)}명</b> · 평소 이 시간(약 ${round(ref.forecast)}명)보다 <b>${round(Math.abs(diff))}명 ${diff > 0 ? "많아요" : "적어요"}</b>.`;
 }
 
-let curIdx = 0, scaleTop = 0;
+let curIdx = 0, scaleTop = 0, fullDay = false;
+const PHONE = window.matchMedia("(max-width:600px)");
+const PHONE_SLOTS = 24;                 // 휴대폰: 6시간(15분 × 24칸)만 크게
 
 // 운영 시간 전체(08:00~19:30)를 한 화면에: 오늘 기록이 있는 칸만 막대, 아직 안 온 칸은 비워 둠
 function renderSlots(s){
@@ -657,10 +696,18 @@ function renderSlots(s){
   const curT = (!before && !after) ? s.now_slot : null;
   curIdx = curT ? Math.max(0, s.slots.findIndex(x => x.t === curT)) : after ? n - 1 : -1;
   renderCompareSummary(s, curT, after);
+  // 보여 줄 칸: PC는 하루 전체, 휴대폰은 지금 칸이 오른쪽에 오도록 6시간 (앞으로 1시간 포함)
+  let v0 = 0, v1 = n;
+  if (PHONE.matches && !fullDay && n > PHONE_SLOTS){
+    const anchor = curIdx >= 0 ? curIdx + 4 : (after ? n - 1 : PHONE_SLOTS - 1);
+    v1 = Math.min(n, Math.max(PHONE_SLOTS, anchor + 1)); v0 = v1 - PHONE_SLOTS;
+  }
+  const vn = v1 - v0;
   const shown = [];
   const bars = $("bars"), xl = $("xlabels");
   bars.innerHTML = ""; xl.innerHTML = "";
   s.slots.forEach((x, i) => {
+    if (i < v0 || i >= v1) return;
     const isNow = x.t === curT, isPast = !isNow && (after || (curIdx >= 0 && i < curIdx));
     const kind = isNow ? "now" : isPast ? "past" : "future";
     const col = document.createElement("div"); col.className = "col";
@@ -686,7 +733,7 @@ function renderSlots(s){
     bars.appendChild(col);
     if (x.t.endsWith(":00")){
       const h = +x.t.slice(0, 2), lab = document.createElement("span");
-      lab.textContent = `${h}시`; lab.style.left = (i / n * 100) + "%";
+      lab.textContent = `${h}시`; lab.style.left = ((i - v0) / vn * 100) + "%";
       if (h % 2) lab.className = "odd";
       xl.appendChild(lab);
     }
@@ -699,10 +746,16 @@ function renderSlots(s){
 // 좁은 화면에서는 시간 글자를 2시간 간격으로
 function layoutChart(){
   if (!slotData || !slotData.slots.length) return;
-  const perHour = $("area").clientWidth / slotData.slots.length * 4;
+  const perHour = $("area").clientWidth / $("bars").children.length * 4;
   $("xlabels").classList.toggle("sparse", perHour < 40);
 }
 window.addEventListener("resize", layoutChart);
+PHONE.addEventListener("change", () => { if (slotData) renderSlots(slotData); });
+$("rangeBtn").addEventListener("click", () => {
+  fullDay = !fullDay;
+  $("rangeBtn").setAttribute("aria-pressed", fullDay);
+  if (slotData) renderSlots(slotData);
+});
 
 // 세로축: 0부터 딱 떨어지는 간격, 위쪽에 "지금" 글자 자리
 function setScale(raw){
