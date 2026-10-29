@@ -120,32 +120,31 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .plot{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px}
 .yaxis{position:relative;height:224px}
 .yaxis span{position:absolute;right:0;transform:translateY(50%);font-size:12px;color:var(--muted)}
-.area{position:relative;height:224px;border-bottom:1px solid var(--faint);overflow:hidden;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-.area.drag{cursor:grabbing}
+.area{position:relative;height:224px;border-bottom:1px solid var(--faint);overflow:hidden}
 .gl{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--rule)}
-.bars{position:absolute;top:0;bottom:0;left:0;display:flex;will-change:transform}
-.col{flex:none;position:relative;height:100%}
-.col::before{content:"";position:absolute;inset:0 2px;border-radius:4px;background:transparent;transition:background-color 120ms ease}
+.bars{position:absolute;inset:0;display:flex}
+.col{flex:1;min-width:0;position:relative;height:100%;cursor:pointer}
+.col::before{content:"";position:absolute;inset:0;border-radius:4px;background:transparent;transition:background-color 120ms ease}
 .col.on::before{background:var(--grid-ink)}
-.avg{position:absolute;left:3px;right:3px;height:0;border-top:2px solid var(--text);opacity:.5;pointer-events:none;
+.avg{position:absolute;left:4%;right:4%;height:0;border-top:2px solid var(--text);opacity:.5;pointer-events:none;
   bottom:calc(var(--v) / var(--top) * 100%);transition:bottom 250ms var(--ease-out)}
 .tip{position:absolute;top:0;z-index:2;min-width:132px;padding:8px 12px;border-radius:var(--r-ctl);background:var(--text);color:var(--surface);
   font-size:12px;line-height:18px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.16)}
 .tip b{display:block;font-size:13px;font-weight:600}
 .tip span{display:block;opacity:.8}
 .area{--top:100}
-.bar{position:absolute;left:5px;right:5px;bottom:0;border-radius:3px 3px 0 0;min-height:2px;background:var(--data-2);
+.bar{position:absolute;left:14%;right:14%;bottom:0;border-radius:3px 3px 0 0;min-height:2px;background:var(--data-2);
   height:min(100%, calc(var(--v) / var(--top) * 100%));transition:height 250ms var(--ease-out)}
 .bar.now{background:var(--data)}
 .bar.fc{background:var(--data-tint);border:1px dashed var(--data);border-bottom:0}
-.band{position:absolute;left:5px;right:5px;background:var(--grid-ink);pointer-events:none;
+.band{position:absolute;left:14%;right:14%;background:var(--grid-ink);pointer-events:none;
   bottom:calc(var(--lo) / var(--top) * 100%);height:calc((var(--hi) - var(--lo)) / var(--top) * 100%);transition:bottom 250ms var(--ease-out),height 250ms var(--ease-out)}
 .now-tag{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--v) / var(--top) * 100% + 4px);transition:bottom 250ms var(--ease-out);font-size:12px;line-height:16px;font-weight:600;color:var(--data);white-space:nowrap}
-.xwrap{overflow:hidden;margin:8px 0 0 40px}
-.xlabels{display:flex;will-change:transform}
-.xlabels span{flex:none;text-align:center;font-size:12px;color:var(--muted);white-space:nowrap}
+.xwrap{position:relative;height:16px;margin:8px 0 0 40px}
+.xlabels{position:absolute;inset:0}
+.xlabels span{position:absolute;top:0;transform:translateX(-50%);font-size:12px;line-height:16px;color:var(--muted);white-space:nowrap}
+.xlabels.sparse span.odd{display:none}
 .head-actions{display:flex;gap:8px;align-items:center}
-@media (max-width:600px){.xlabels span.half{visibility:hidden}}
 .chart-empty{margin-top:12px;font-size:12px;color:var(--muted)}
 
 /* ── 지난 기록 ── */
@@ -296,7 +295,6 @@ footer svg{flex:none}
       <div class="card-head">
         <h2 id="chartTitle">오늘 시간대별 인원 · 15분 단위</h2>
         <div class="head-actions">
-          <button class="btn" id="nowBtn" type="button" hidden>지금으로</button>
           <button class="btn toggle" id="cmpBtn" type="button" aria-pressed="false">지난 평일과 비교</button>
         </div>
       </div>
@@ -309,7 +307,6 @@ footer svg{flex:none}
       <div class="legend">
         <span><i class="past"></i>오늘</span>
         <span><i class="avg"></i>지난 평일 평균</span>
-        <span><i class="fc"></i>남은 시간 (지난 평일 평균)</span>
         <span id="spanLegend" hidden><i class="span"></i>지난 평일 범위</span>
       </div>
       <p class="chart-empty" id="chartSub"></p>
@@ -641,92 +638,70 @@ function renderCompareSummary(s, curT, after){
     : `${when} 약 <b>${round(ref.actual)}명</b> · 지난 평일 같은 시간(평균 약 ${round(ref.forecast)}명)보다 <b>${round(Math.abs(diff))}명 ${diff > 0 ? "많아요" : "적어요"}</b>.`;
 }
 
-let viewStart = null, curStart = 0, curIdx = 0, slotMax = [], scaleTop = 0;     // viewStart: 사용자가 끌어 놓은 왼쪽 칸 (null = 지금 따라가기)
-const visCount = () => $("area").clientWidth < 520 ? 8 : 12;
-// 지금 칸 오른쪽에 앞으로 올 칸을 몇 개 보여 줄지 (넓은 화면 1시간, 좁은 화면 30분)
-const followStart = () => {
-  const vis = visCount(), ahead = vis >= 12 ? 4 : 2;
-  return Math.min(Math.max(0, slotData.slots.length - vis), Math.max(0, curIdx - (vis - 1 - ahead)));
-};
+let curIdx = 0, scaleTop = 0;
 
+// 운영 시간 전체(08:00~19:30)를 한 화면에: 오늘 기록이 있는 칸만 막대, 아직 안 온 칸은 비워 둠
 function renderSlots(s){
   slotData = s;
   $("spanLegend").hidden = !compareOn;
-  $("chartSub").textContent = (s.days > 0 ? `점선은 지난 평일 ${s.days}일 같은 시간 평균이에요. ` : "지난 평일 평균은 기록이 쌓이면 보여요. ")
-    + "막대를 잡고 좌우로 끌면 앞뒤 시간을 볼 수 있어요.";
+  $("chartSub").textContent = (s.days > 0 ? `가로선은 지난 평일 ${s.days}일 같은 시간 평균이에요. ` : "지난 평일 평균은 기록이 쌓이면 보여요. ")
+    + "막대에 마우스를 올리거나 누르면 그 시간의 인원을 볼 수 있어요.";
   hideTip();
   const n = s.slots.length;
   if (!n) return;
   const nowT = nowHM(), endT = addMin(s.slots[n - 1].t, 15);
   const before = nowT < s.slots[0].t, after = nowT >= endT;
   const curT = (!before && !after) ? s.now_slot : null;
-  curIdx = curT ? Math.max(0, s.slots.findIndex(x => x.t === curT)) : after ? n - 1 : 0;
+  curIdx = curT ? Math.max(0, s.slots.findIndex(x => x.t === curT)) : after ? n - 1 : -1;
   renderCompareSummary(s, curT, after);
-  // 칸마다 축 계산에 쓸 최댓값 (보이는 범위에 맞춰 축을 바꿈)
-  slotMax = s.slots.map((x, i) => Math.max(
-    (after || (curT && i <= curIdx)) && x.actual != null ? x.actual : 0,
-    x.forecast != null ? x.forecast : 0,
-    compareOn && x.hi != null ? x.hi : 0));
+  const shown = [];
   const bars = $("bars"), xl = $("xlabels");
-  xl.innerHTML = "";
-  scaleTop = 0;
-  bars.innerHTML = "";
+  bars.innerHTML = ""; xl.innerHTML = "";
   s.slots.forEach((x, i) => {
-    const isNow = x.t === curT, isPast = !isNow && (after || (curT && i < curIdx));
+    const isNow = x.t === curT, isPast = !isNow && (after || (curIdx >= 0 && i < curIdx));
     const kind = isNow ? "now" : isPast ? "past" : "future";
+    const showAvg = x.forecast != null && (kind !== "future" || compareOn);
     const col = document.createElement("div"); col.className = "col";
     if (compareOn && x.lo != null && x.hi != null && x.hi > x.lo){
       const band = document.createElement("div"); band.className = "band";
       band.style.setProperty("--lo", x.lo); band.style.setProperty("--hi", x.hi);
-      col.appendChild(band);
+      col.appendChild(band); shown.push(x.hi);
     }
     if (kind !== "future" && x.actual != null){
       const el = document.createElement("div"); el.className = "bar" + (isNow ? " now" : "");
-      el.style.setProperty("--v", x.actual); col.appendChild(el);
-    } else if (kind === "future" && x.forecast != null){
-      const el = document.createElement("div"); el.className = "bar fc";
-      el.style.setProperty("--v", x.forecast); col.appendChild(el);
+      el.style.setProperty("--v", x.actual); col.appendChild(el); shown.push(x.actual);
     }
-    if (kind !== "future" && x.forecast != null){
-      const m = document.createElement("div"); m.className = "avg"; m.style.setProperty("--v", x.forecast); col.appendChild(m);
+    if (showAvg){
+      const m = document.createElement("div"); m.className = "avg"; m.style.setProperty("--v", x.forecast); col.appendChild(m); shown.push(x.forecast);
     }
     if (isNow){
-      const tv = Math.max(x.actual || 0, x.forecast || 0);
       const tag = document.createElement("span"); tag.className = "now-tag"; tag.textContent = "지금";
-      tag.style.setProperty("--v", tv); col.appendChild(tag);
+      tag.style.setProperty("--v", Math.max(x.actual || 0, x.forecast || 0)); col.appendChild(tag);
     }
     col.dataset.tip = slotTip(x, kind);
-    col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse" && !drag) showTip(col); });
+    col.addEventListener("pointerenter", e => { if (e.pointerType === "mouse") showTip(col); });
     col.addEventListener("click", () => col.classList.contains("on") ? hideTip() : showTip(col));
     bars.appendChild(col);
-    const lab = document.createElement("span");
-    lab.textContent = /:(00|30)$/.test(x.t) ? x.t : "";
-    if (x.t.endsWith(":30")) lab.className = "half";
-    xl.appendChild(lab);
+    if (x.t.endsWith(":00")){
+      const h = +x.t.slice(0, 2), lab = document.createElement("span");
+      lab.textContent = `${h}시`; lab.style.left = (i / n * 100) + "%";
+      if (h % 2) lab.className = "odd";
+      xl.appendChild(lab);
+    }
   });
+  setScale(Math.max(10, ...shown) * 1.15);
   layoutChart();
   renderTrend();
 }
 
-// 칸 너비를 화면에 맞추고, 지금 칸 뒤로 앞 시간이 조금 보이게 (사용자가 끌어 놓았으면 그 자리 유지)
+// 좁은 화면에서는 시간 글자를 2시간 간격으로
 function layoutChart(){
   if (!slotData || !slotData.slots.length) return;
-  const n = slotData.slots.length, vis = visCount(), cw = $("area").clientWidth / vis;
-  $("bars").style.width = n * cw + "px";
-  $("bars").querySelectorAll(".col").forEach(c => c.style.width = cw + "px");
-  $("xlabels").querySelectorAll("span").forEach(c => c.style.width = cw + "px");
-  const maxStart = Math.max(0, n - vis);
-  setPan(viewStart == null ? followStart() : Math.min(maxStart, Math.max(0, viewStart)));
+  const perHour = $("area").clientWidth / slotData.slots.length * 4;
+  $("xlabels").classList.toggle("sparse", perHour < 40);
 }
-function setPan(start){
-  curStart = start;
-  const cw = $("area").clientWidth / visCount();
-  const tf = `translateX(${-start * cw}px)`;
-  $("bars").style.transform = tf; $("xlabels").style.transform = tf;
-  $("nowBtn").hidden = viewStart == null;
-  const a = Math.max(0, Math.floor(start)), b = Math.min(slotMax.length, Math.ceil(start + visCount()));
-  setScale(Math.max(10, ...slotMax.slice(a, b)) * 1.15);
-}
+window.addEventListener("resize", layoutChart);
+
 // 세로축: 0부터 딱 떨어지는 간격, 위쪽에 "지금" 글자 자리
 function setScale(raw){
   const step = [5, 10, 20, 25, 40, 50, 100, 200].find(v => raw / v <= 4) || 400;
@@ -742,39 +717,6 @@ function setScale(raw){
     if (v > 0){ const g = document.createElement("div"); g.className = "gl"; g.style.bottom = pos(v); area.insertBefore(g, $("bars")); }
   }
 }
-
-// 잡고 끌어서 앞뒤 시간 보기 (마우스·터치)
-let drag = null, swallowClick = false;
-(() => {
-  const area = $("area");
-  area.addEventListener("pointerdown", e => {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    drag = {x: e.clientX, start: curStart, id: e.pointerId, moved: false};
-  });
-  area.addEventListener("pointermove", e => {
-    if (!drag || !slotData) return;
-    const dx = e.clientX - drag.x;
-    if (!drag.moved){
-      if (Math.abs(dx) < 5) return;
-      drag.moved = true; area.setPointerCapture(drag.id); area.classList.add("drag"); hideTip();
-    }
-    const vis = visCount(), cw = area.clientWidth / vis, maxStart = Math.max(0, slotData.slots.length - vis);
-    viewStart = Math.min(maxStart, Math.max(0, drag.start - dx / cw));
-    setPan(viewStart);
-  });
-  const end = () => {
-    if (drag && drag.moved){
-      viewStart = Math.round(viewStart);
-      if (viewStart === followStart()) viewStart = null;     // 지금 위치로 돌아오면 다시 따라가기
-      layoutChart(); area.classList.remove("drag"); swallowClick = true;
-    }
-    drag = null;
-  };
-  area.addEventListener("pointerup", end);
-  area.addEventListener("pointercancel", end);
-  area.addEventListener("click", e => { if (swallowClick){ e.stopPropagation(); swallowClick = false; } }, true);
-  window.addEventListener("resize", layoutChart);
-})();
 
 function renderHistory(h){
   const ul = $("histList");
@@ -829,8 +771,7 @@ $("cmpBtn").addEventListener("click", () => {
   $("cmpBtn").setAttribute("aria-pressed", compareOn);
   if (slotData) renderSlots(slotData);
 });
-$("area").addEventListener("pointerleave", e => { if (e.pointerType === "mouse" && !drag) hideTip(); });
-$("nowBtn").addEventListener("click", () => { viewStart = null; layoutChart(); });
+$("area").addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hideTip(); });
 
 // ── 밝은·어두운 화면 전환 ──
 $("themeBtn").addEventListener("click", () => {
