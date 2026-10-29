@@ -117,6 +117,15 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .cchip.soon span{color:var(--mid)}
 .cchip.off{background:var(--raised)}
 .cchip.off b{color:var(--faint);text-decoration:line-through}
+.fb{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:0 -32px;padding:14px 32px 16px;border-top:1px solid var(--border);background:var(--raised);border-radius:0 0 var(--r-card) var(--r-card)}
+.fb-q{display:flex;flex-direction:column}
+.fb-q b{font-weight:600}
+.fb-q span{font-size:12px;color:var(--muted)}
+.fb-btns,.fb-after{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-left:auto}
+.fb-btns .btn{font-weight:500}
+.fb-after > span{color:var(--ok);font-weight:600}
+.fb-after form{display:flex;gap:8px}
+.fb-after input{height:32px;width:220px;padding:0 10px;border:1px solid var(--control);border-radius:var(--r-ctl);background:var(--surface);color:var(--text);font:inherit}
 .map .fx.counter.closed rect{opacity:.45}
 .map .fx.counter.closed text{fill:var(--faint)}
 
@@ -255,6 +264,11 @@ footer svg{flex:none}
   .occ-labels .m{display:block;position:static;font-size:12px;line-height:16px;white-space:normal;word-break:keep-all}
   .kpis{grid-template-columns:minmax(0,1fr);margin:24px -16px 0}
   .counters{margin:0 -16px;padding:12px 16px 16px}
+  .fb{margin:0 -16px;padding:14px 16px 16px}
+  .fb-btns,.fb-after{margin-left:0;width:100%}
+  .fb-btns .btn{flex:1;padding:0 6px}
+  .fb-after form{width:100%}
+  .fb-after input{flex:1;width:auto;min-width:0}
   .kpi{padding:14px 16px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:baseline}
   .kpi+.kpi{border-left:0;border-top:1px solid var(--border)}
   .kpi small{grid-column:1}
@@ -338,6 +352,18 @@ footer svg{flex:none}
         <div class="kpi"><small>주문 대기 (키오스크)</small><b id="kioskMain" class="tnum dash">—</b><p id="kioskSub">&nbsp;</p><p class="kpi-note" id="kioskNote">19:00부터는 키오스크 카메라가 꺼져 알 수 없어요</p></div>
       </div>
       <div class="counters" id="counters" aria-label="배식대 영업 상태"></div>
+      <div class="fb" id="fb" hidden>
+        <div class="fb-q"><b>지금 화면, 실제랑 비슷했나요?</b><span>식당에서 보고 계시면 한 번 눌러 주세요</span></div>
+        <div class="fb-btns" id="fbBtns">
+          <button class="btn" type="button" data-a="맞아요">맞아요</button>
+          <button class="btn" type="button" data-a="더 붐볐어요">더 붐볐어요</button>
+          <button class="btn" type="button" data-a="더 한산했어요">더 한산했어요</button>
+        </div>
+        <div class="fb-after" id="fbAfter" hidden>
+          <span id="fbThanks" role="status"></span>
+          <form id="fbForm"><input id="fbText" maxlength="200" placeholder="한 줄 의견 (선택)" aria-label="한 줄 의견"><button class="btn" type="submit">보내기</button></form>
+        </div>
+      </div>
     </section>
 
     <section class="card full" id="chartCard">
@@ -511,6 +537,50 @@ function counterState(c){
   const soon = toMin(close) - toMin(t) <= 30;
   return {st: soon ? "on soon" : "on", text: soon ? `곧 마감 · ${close}` : `~${close}`};
 }
+// ── 이용자 의견: 한 번 누르기 + 한 줄 의견 (같은 기기 10분에 한 번) ──
+const FB_GAP = 10 * 60 * 1000;
+let fbId = null;
+const store = {get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+               set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }};
+function clientId(){
+  let c = store.get("fb_cid");
+  if (!c){ c = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)); store.set("fb_cid", c); }
+  return c;
+}
+function renderFeedback(){
+  $("fb").hidden = !live();
+  if (!live() || fbId != null) return;
+  const recent = Date.now() - (+store.get("fb_last") || 0) < FB_GAP;
+  $("fbBtns").hidden = recent; $("fbAfter").hidden = !recent; $("fbForm").hidden = true;
+  if (recent) $("fbThanks").textContent = "의견 고마워요! 10분 뒤에 다시 남길 수 있어요.";
+}
+async function postFeedback(body){
+  const r = await fetch("/api/feedback", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({cid: clientId(), ...body})});
+  return {status: r.status, data: await r.json().catch(() => ({}))};
+}
+$("fbBtns").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-a]"); if (!b) return;
+  $("fbBtns").querySelectorAll("button").forEach(x => x.disabled = true);
+  try {
+    const {status, data} = await postFeedback({answer: b.dataset.a});
+    if (data.ok){
+      fbId = data.id; store.set("fb_last", Date.now());
+      $("fbThanks").textContent = "고마워요! 정확도를 높이는 데 쓸게요.";
+      $("fbBtns").hidden = true; $("fbAfter").hidden = false; $("fbForm").hidden = false;
+    } else {
+      $("fbThanks").textContent = status === 429 ? "잠시 뒤에 다시 남겨 주세요." : "보내지 못했어요. 잠시 뒤에 다시 눌러 주세요.";
+      $("fbAfter").hidden = false; $("fbForm").hidden = true;
+    }
+  } catch (err){ $("fbThanks").textContent = "보내지 못했어요. 연결을 확인해 주세요."; $("fbAfter").hidden = false; $("fbForm").hidden = true; }
+  $("fbBtns").querySelectorAll("button").forEach(x => x.disabled = false);
+});
+$("fbForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const text = $("fbText").value.trim(); if (!text || fbId == null) return;
+  try { await postFeedback({id: fbId, text}); } catch (err) {}
+  $("fbForm").hidden = true; $("fbThanks").textContent = "의견까지 보내 주셔서 고마워요!";
+});
+
 function renderCounters(){
   const box = $("counters");
   box.innerHTML = "<small>배식대</small>";
@@ -598,6 +668,7 @@ function renderLatest(d){
   }
   renderSeats(d);
   renderCounters();
+  renderFeedback();
   renderTrend();
 }
 
@@ -906,6 +977,7 @@ if (DEMO){
         free_pct: Math.round(fr * 100), capacity: seatsTotal, used_seats: used,
         summary: {total: vals.length, empty: cnt("empty"), occupied: cnt("occupied"), away: cnt("away"), free_seats: freeSeats, seats: seatsTotal, people: 90}, tables});
     }
+    if (u === "/api/feedback") return J({ok: true, id: 1});
     if (u === "/api/slots"){
       const slots = curve.map((f, i) => { const t = slotT(i), m = toMin(t);
         return {t, forecast: f, lo: Math.round(f * .78), hi: Math.round(f * 1.18), actual: m <= nowM ? Math.round(f * (1 + ((i * 7) % 5 - 2) / 20)) : null}; });

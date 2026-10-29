@@ -39,6 +39,10 @@ with db() as con:
         ts TEXT PRIMARY KEY, seat_people INTEGER, tables_total INTEGER, tables_empty INTEGER,
         tables_occupied INTEGER, tables_away INTEGER, free_seats INTEGER,
         kiosk_people INTEGER, kiosk_queue INTEGER, kiosk_wait REAL, received_at TEXT)""")
+    # 이용자 의견: 그때 화면이 보여준 값과 함께 저장 (이름·연락처·IP는 저장하지 않음)
+    con.execute("""CREATE TABLE IF NOT EXISTS feedback(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, answer TEXT, text TEXT,
+        level TEXT, free_pct INTEGER, people INTEGER, used_seats INTEGER, open INTEGER, cid TEXT)""")
 
 try:
     with open(STATE_PATH) as f:
@@ -281,6 +285,60 @@ def history():
              "slots": {s: round(sum(v) / len(v), 1) for s, v in by_day[d].items()}}
             for d in days]}
     return jsonify(cached("history", build))
+
+
+# ---------- 이용자 의견 ----------
+FEEDBACK_ANSWERS = {"맞아요", "더 붐볐어요", "더 한산했어요"}
+FEEDBACK_GAP = 600          # 같은 기기는 10분에 한 번
+FEEDBACK_PER_MIN = 60       # 전체 1분 상한 (장난 방지)
+_fb_last, _fb_recent, _fb_lock = {}, [], threading.Lock()
+
+
+@app.post("/api/feedback")
+def feedback():
+    """한 번 누르는 의견. 처음에는 answer를 보내고, 한 줄 의견은 같은 id로 text를 덧붙인다."""
+    obj = request.get_json(silent=True) or {}
+    cid = str(obj.get("cid") or "")[:40]
+    if len(cid) < 8:
+        return jsonify(ok=False, error="bad request"), 400
+    now_t = time.time()
+    if obj.get("id") is not None:                      # 한 줄 의견 덧붙이기
+        text = str(obj.get("text") or "").strip()[:200]
+        if not text:
+            return jsonify(ok=False, error="empty"), 400
+        with db() as con:
+            cur = con.execute("UPDATE feedback SET text=? WHERE id=? AND cid=? AND (text IS NULL OR text='')",
+                              (text, int(obj["id"]), cid))
+        return jsonify(ok=cur.rowcount == 1)
+    answer = str(obj.get("answer") or "")
+    if answer not in FEEDBACK_ANSWERS:
+        return jsonify(ok=False, error="bad answer"), 400
+    with _fb_lock:
+        _fb_recent[:] = [t for t in _fb_recent if now_t - t < 60]
+        if now_t - _fb_last.get(cid, 0) < FEEDBACK_GAP or len(_fb_recent) >= FEEDBACK_PER_MIN:
+            return jsonify(ok=False, error="too many"), 429
+        _fb_last[cid] = now_t
+        _fb_recent.append(now_t)
+    snap = latest().get_json() or {}
+    with db() as con:
+        cur = con.execute("INSERT INTO feedback(ts, answer, level, free_pct, people, used_seats, open, cid) VALUES (?,?,?,?,?,?,?,?)",
+                          (datetime.datetime.now().isoformat(timespec="seconds"), answer, snap.get("level"),
+                           snap.get("free_pct"), snap.get("people"), snap.get("used_seats"),
+                           1 if snap.get("open") else 0, cid))
+    return jsonify(ok=True, id=cur.lastrowid)
+
+
+@app.get("/api/feedback")
+def feedback_list():
+    """팀용 의견 조회 (토큰 필요): 단계별 응답 수와 최근 의견."""
+    if request.headers.get("X-API-Key") != TOKEN:
+        return jsonify(error="unauthorized"), 401
+    with db() as con:
+        summary = [dict(r) for r in con.execute(
+            "SELECT level, answer, COUNT(*) n FROM feedback GROUP BY level, answer ORDER BY level, answer")]
+        rows = [dict(r) for r in con.execute(
+            "SELECT id, ts, answer, text, level, free_pct, people, used_seats, open FROM feedback ORDER BY id DESC LIMIT 200")]
+    return jsonify(total=sum(r["n"] for r in summary), summary=summary, recent=rows)
 
 
 @app.get("/api/layout")
