@@ -149,6 +149,7 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .tour-card b{display:block;font-size:16px;line-height:24px;margin:2px 0 4px}
 .tour-card p{margin:0;color:var(--muted);font-size:14px;line-height:21px;word-break:keep-all}
 .tour-actions{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
+.tour-actions .primary{margin-left:auto}
 .tour-skip{color:var(--muted);font-weight:500}
 @media (prefers-reduced-motion:reduce){.rp{animation:none}.tour-hole,.tour-card{transition:none}}
 .map .fx.counter.closed rect{opacity:.45}
@@ -695,7 +696,9 @@ function showTourStep(i){
   const st = TOUR[i];
   $("tourStep").textContent = `${i + 1} / ${TOUR.length}`;
   $("tourTitle").textContent = st.title; $("tourText").textContent = val(st.text);
-  $("tourNext").textContent = i === TOUR.length - 1 ? "시작하기" : "다음";
+  const last = i === TOUR.length - 1;
+  $("tourNext").textContent = last ? "알겠어요" : "다음";
+  $("tourSkip").hidden = last;
   const el = document.querySelector(val(st.sel));
   if (el) el.scrollIntoView({block: "center", behavior: "instant"});
   placeTour(); requestAnimationFrame(placeTour); setTimeout(placeTour, 300);
@@ -703,9 +706,11 @@ function showTourStep(i){
 function startTour(){ closeReturn(false); $("tour").hidden = false; showTourStep(0); $("tourNext").focus(); }
 function endTour(){ $("tour").hidden = true; tourIdx = -1; store.set("tour_done", "1"); window.scrollTo({top: 0}); }
 $("tourNext").addEventListener("click", () => tourIdx < TOUR.length - 1 ? showTourStep(tourIdx + 1) : endTour());
-$("tourSkip").addEventListener("click", endTour);
+// 건너뛰어도 마지막 "다녀온 뒤 의견 눌러 주세요" 부탁은 한 번 보여 줌
+const skipTour = () => tourIdx < TOUR.length - 1 ? showTourStep(TOUR.length - 1) : endTour();
+$("tourSkip").addEventListener("click", skipTour);
 $("tourBtn").addEventListener("click", startTour);
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("tour").hidden) endTour(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("tour").hidden) skipTour(); });
 addEventListener("resize", placeTour);
 addEventListener("scroll", placeTour, {passive: true});
 
