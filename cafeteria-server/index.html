@@ -17,7 +17,7 @@
   --mid:#92400e; --mid-fill:#d9962c; --mid-bg:#fdf3e1;
   --busy:#c4242a; --busy-fill:#c4242a; --busy-bg:#fdeaea;
   --seat-bg:#fff; --map-line:#d5dae0; --fx:#e9ecf0; --unm-bg:#eceef1; --unm-line:#b9bfc7; --on-data:#fff;
-  --grid-ink:rgba(17,20,24,.06);
+  --grid-ink:rgba(17,20,24,.06); --usual:#e1e5eb;
   --r-card:8px; --r-ctl:6px; --r-pill:999px;
   --ease-out:cubic-bezier(.23,1,.32,1);
 }
@@ -26,7 +26,7 @@
 html[data-dark]{color-scheme:dark;--ground:#0a0a0a;--surface:#141414;--raised:#1b1b1b;--active:#262626;--border:#262626;--rule:#202020;--control:#464646;
   --text:#f2f2f2;--muted:#b0b0b0;--faint:#8f8f8f;--data:#5b9bea;--data-2:#33527c;--data-tint:rgba(91,155,234,.16);
   --ok:#4cc584;--ok-fill:#3fc07a;--ok-bg:#15291c;--mid:#f0b452;--mid-fill:#d99a35;--mid-bg:#2b2213;--busy:#ef6a7f;--busy-fill:#e5566f;--busy-bg:#2c161a;
-  --seat-bg:#141414;--map-line:#363636;--fx:#222;--unm-bg:#1d1d1d;--unm-line:#4a4a4a;--on-data:#0b0b0b;--grid-ink:rgba(255,255,255,.09)}
+  --seat-bg:#141414;--map-line:#363636;--fx:#222;--unm-bg:#1d1d1d;--unm-line:#4a4a4a;--on-data:#0b0b0b;--grid-ink:rgba(255,255,255,.09);--usual:#2c2f33}
 html[data-dark] .mark svg{color:var(--data)}
 
 .demo-note{max-width:1248px;margin:16px auto 0;padding:0 24px;color:var(--mid);font-size:12px}
@@ -111,7 +111,8 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:0}
 .legend i.past{background:var(--data-2)}
 .legend i.fc{background:var(--data-tint);outline:1px dashed var(--data);outline-offset:-1px}
-.legend i.avg{height:0;border-top:2px solid var(--text);border-radius:0;vertical-align:3px}
+.legend i.usual{width:10px;height:10px;background:var(--usual);vertical-align:-1px}
+.legend.in-head{margin:0;flex-wrap:nowrap;white-space:nowrap}
 .legend i.span{background:var(--grid-ink)}
 .btn.toggle{font-weight:500;color:var(--muted)}
 .btn.toggle[aria-pressed="true"]{background:var(--data-tint);border-color:var(--data);color:var(--data)}
@@ -126,8 +127,8 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
 .col{flex:1;min-width:0;position:relative;height:100%;cursor:pointer}
 .col::before{content:"";position:absolute;inset:0;border-radius:4px;background:transparent;transition:background-color 120ms ease}
 .col.on::before{background:var(--grid-ink)}
-.avg{position:absolute;left:4%;right:4%;height:0;border-top:2px solid var(--text);opacity:.5;pointer-events:none;
-  bottom:calc(var(--v) / var(--top) * 100%);transition:bottom 250ms var(--ease-out)}
+.usual{position:absolute;left:5%;right:5%;bottom:0;border-radius:3px 3px 0 0;background:var(--usual);pointer-events:none;
+  height:min(100%, calc(var(--v) / var(--top) * 100%));transition:height 250ms var(--ease-out)}
 .tip{position:absolute;top:0;z-index:2;min-width:132px;padding:8px 12px;border-radius:var(--r-ctl);background:var(--text);color:var(--surface);
   font-size:12px;line-height:18px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.16)}
 .tip b{display:block;font-size:13px;font-weight:600}
@@ -137,7 +138,7 @@ h1{margin:0;font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.01e
   height:min(100%, calc(var(--v) / var(--top) * 100%));transition:height 250ms var(--ease-out)}
 .bar.now{background:var(--data)}
 .bar.fc{background:var(--data-tint);border:1px dashed var(--data);border-bottom:0}
-.band{position:absolute;left:14%;right:14%;background:var(--grid-ink);pointer-events:none;
+.band{position:absolute;left:calc(50% - 1px);right:calc(50% - 1px);background:var(--faint);opacity:.55;pointer-events:none;
   bottom:calc(var(--lo) / var(--top) * 100%);height:calc((var(--hi) - var(--lo)) / var(--top) * 100%);transition:bottom 250ms var(--ease-out),height 250ms var(--ease-out)}
 .now-tag{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--v) / var(--top) * 100% + 4px);transition:bottom 250ms var(--ease-out);font-size:12px;line-height:16px;font-weight:600;color:var(--data);white-space:nowrap}
 .xwrap{position:relative;height:16px;margin:8px 0 0 40px}
@@ -221,7 +222,7 @@ footer{max-width:1248px;margin:0 auto;padding:0 24px 40px;color:var(--muted);fon
 footer p{margin:0;display:flex;gap:8px;align-items:flex-start;word-break:keep-all}
 footer svg{flex:none}
 
-@media (prefers-reduced-motion:reduce){.bar,.band,.avg,.now-tag{transition:none}}
+@media (prefers-reduced-motion:reduce){.bar,.band,.usual,.now-tag{transition:none}}
 @media (prefers-reduced-motion:reduce){.btn.spin svg{animation:none}button.btn,.occ-fill,.zbar b{transition:none}}
 /* 좁은 창: 한 줄로 쌓기 */
 @media (max-width:1100px){
@@ -295,7 +296,12 @@ footer svg{flex:none}
       <div class="card-head">
         <h2 id="chartTitle">오늘 시간대별 인원 · 15분 단위</h2>
         <div class="head-actions">
-          <button class="btn toggle" id="cmpBtn" type="button" aria-pressed="false">지난 평일과 비교</button>
+          <div class="legend in-head">
+            <span><i class="past"></i>오늘</span>
+            <span><i class="usual"></i>평소</span>
+            <span id="spanLegend" hidden><i class="span"></i>평소 범위</span>
+          </div>
+          <button class="btn toggle" id="cmpBtn" type="button" aria-pressed="false">평소와 비교</button>
         </div>
       </div>
       <p class="cmp-sum tnum" id="cmpSum" hidden></p>
@@ -304,11 +310,6 @@ footer svg{flex:none}
         <div class="area" id="area"><div class="bars" id="bars"></div><div class="tip tnum" id="tip" hidden></div></div>
       </div>
       <div class="xwrap"><div class="xlabels tnum" id="xlabels" aria-hidden="true"></div></div>
-      <div class="legend">
-        <span><i class="past"></i>오늘</span>
-        <span><i class="avg"></i>지난 평일 평균</span>
-        <span id="spanLegend" hidden><i class="span"></i>지난 평일 범위</span>
-      </div>
       <p class="chart-empty" id="chartSub"></p>
     </section>
 
@@ -597,9 +598,9 @@ function slotTip(x, kind){
   const rows = [`<b>${x.t}~${addMin(x.t, 15)}</b>`];
   if (kind === "future") rows.push("<span>아직 오지 않은 시간이에요</span>");
   else rows.push(`<span>${kind === "now" ? "지금까지 " : "오늘 "}${x.actual == null ? "기록 없음" : "약 " + round(x.actual) + "명"}</span>`);
-  if (compareOn && x.forecast != null){
-    rows.push(`<span>지난 평일 평균 약 ${round(x.forecast)}명</span>`);
-    if (x.lo != null && x.hi != null && x.hi > x.lo) rows.push(`<span>지난 평일 범위 ${round(x.lo)}~${round(x.hi)}명</span>`);
+  if (x.forecast != null){
+    rows.push(`<span>평소 약 ${round(x.forecast)}명 (지난 평일 ${slotData.days}일 평균)</span>`);
+    if (compareOn && x.lo != null && x.hi != null && x.hi > x.lo) rows.push(`<span>평소 범위 ${round(x.lo)}~${round(x.hi)}명</span>`);
   }
   return rows.join("");
 }
@@ -622,20 +623,20 @@ function renderCompareSummary(s, curT, after){
   const el = $("cmpSum");
   if (!compareOn){ el.hidden = true; return; }
   el.hidden = false;
-  if (!s.days){ el.textContent = "비교할 지난 평일 기록을 모으는 중이에요."; return; }
-  // 지금 칸(없으면 오늘 기록이 있는 가장 최근 칸)을 지난 평일 같은 칸과 비교
+  if (!s.days){ el.textContent = "평소 기록을 모으는 중이에요."; return; }
+  // 지금 칸(없으면 오늘 기록이 있는 가장 최근 칸)을 평소(지난 평일 같은 칸 평균)와 비교
   const done = s.slots.filter(x => (after || (curT && x.t <= curT)) && x.actual != null && x.forecast != null);
   const ref = done[done.length - 1];
   if (!ref){
     const peak = s.slots.filter(x => x.forecast != null).reduce((a, b) => (!a || b.forecast > a.forecast) ? b : a, null);
-    el.innerHTML = peak ? `지난 평일엔 <b>${peak.t}</b>쯤 가장 붐볐어요 (평균 약 ${round(peak.forecast)}명).` : "비교할 지난 평일 기록이 없어요.";
+    el.innerHTML = peak ? `평소엔 <b>${peak.t}</b>쯤 가장 붐벼요 (약 ${round(peak.forecast)}명).` : "평소 기록이 아직 없어요.";
     return;
   }
   const diff = ref.actual - ref.forecast, near = Math.max(3, ref.forecast * 0.1);
   const when = ref.t === curT ? "지금" : `${ref.t}`;
   el.innerHTML = Math.abs(diff) < near
-    ? `${when} 약 <b>${round(ref.actual)}명</b> · 지난 평일 같은 시간(평균 약 ${round(ref.forecast)}명)과 <b>비슷해요</b>.`
-    : `${when} 약 <b>${round(ref.actual)}명</b> · 지난 평일 같은 시간(평균 약 ${round(ref.forecast)}명)보다 <b>${round(Math.abs(diff))}명 ${diff > 0 ? "많아요" : "적어요"}</b>.`;
+    ? `${when} 약 <b>${round(ref.actual)}명</b> · 평소 이 시간(약 ${round(ref.forecast)}명)과 <b>비슷해요</b>.`
+    : `${when} 약 <b>${round(ref.actual)}명</b> · 평소 이 시간(약 ${round(ref.forecast)}명)보다 <b>${round(Math.abs(diff))}명 ${diff > 0 ? "많아요" : "적어요"}</b>.`;
 }
 
 let curIdx = 0, scaleTop = 0;
@@ -644,7 +645,7 @@ let curIdx = 0, scaleTop = 0;
 function renderSlots(s){
   slotData = s;
   $("spanLegend").hidden = !compareOn;
-  $("chartSub").textContent = (s.days > 0 ? `가로선은 지난 평일 ${s.days}일 같은 시간 평균이에요. ` : "지난 평일 평균은 기록이 쌓이면 보여요. ")
+  $("chartSub").textContent = (s.days > 0 ? `옅은 막대는 평소 이 시간 인원(지난 평일 ${s.days}일 평균)이에요. ` : "평소 값은 기록이 쌓이면 보여요. ")
     + "막대에 마우스를 올리거나 누르면 그 시간의 인원을 볼 수 있어요.";
   hideTip();
   const n = s.slots.length;
@@ -660,8 +661,10 @@ function renderSlots(s){
   s.slots.forEach((x, i) => {
     const isNow = x.t === curT, isPast = !isNow && (after || (curIdx >= 0 && i < curIdx));
     const kind = isNow ? "now" : isPast ? "past" : "future";
-    const showAvg = x.forecast != null && (kind !== "future" || compareOn);
     const col = document.createElement("div"); col.className = "col";
+    if (x.forecast != null){
+      const u = document.createElement("div"); u.className = "usual"; u.style.setProperty("--v", x.forecast); col.appendChild(u); shown.push(x.forecast);
+    }
     if (compareOn && x.lo != null && x.hi != null && x.hi > x.lo){
       const band = document.createElement("div"); band.className = "band";
       band.style.setProperty("--lo", x.lo); band.style.setProperty("--hi", x.hi);
@@ -670,9 +673,6 @@ function renderSlots(s){
     if (kind !== "future" && x.actual != null){
       const el = document.createElement("div"); el.className = "bar" + (isNow ? " now" : "");
       el.style.setProperty("--v", x.actual); col.appendChild(el); shown.push(x.actual);
-    }
-    if (showAvg){
-      const m = document.createElement("div"); m.className = "avg"; m.style.setProperty("--v", x.forecast); col.appendChild(m); shown.push(x.forecast);
     }
     if (isNow){
       const tag = document.createElement("span"); tag.className = "now-tag"; tag.textContent = "지금";
@@ -765,7 +765,7 @@ async function loadSlow(){
   try { renderHistory(await getJSON("/api/history")); } catch (e) {}
 }
 
-// ── 지난 평일과 비교 (누를 때만 예측·범위 표시) ──
+// ── 평소와 비교 (누르면 차이 문장·범위 표시) ──
 $("cmpBtn").addEventListener("click", () => {
   compareOn = !compareOn;
   $("cmpBtn").setAttribute("aria-pressed", compareOn);
