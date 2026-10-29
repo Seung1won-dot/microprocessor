@@ -175,7 +175,7 @@ RTL8822BU가 USB 3.0 모드로 동작하면 2.4GHz 대역에 전파 간섭을 �
 | tailscale0 | 원격 접속, 맥미니로 데이터 전송 | VPN |
 
 ### 6-2. Wi-Fi 프로필 (NetworkManager)
-모든 인터넷 프로필은 이름(wlan1) 대신 **동글의 MAC 주소**(`<MAC>`)에 묶었습니다. 동글 이름이 바뀌어도 프로필이 따라가고, 내장 wlan0이 실수로 학교 Wi-Fi를 잡는 일을 막습니다.
+모든 인터넷 프로필은 이름(wlan1) 대신 **동글의 MAC 주소**(`<동글 MAC>`)에 묶었습니다. 동글 이름이 바뀌어도 프로필이 따라가고, 내장 wlan0이 실수로 학교 Wi-Fi를 잡는 일을 막습니다.
 
 | 프로필 | 용도 | 우선순위 |
 |---|---|---|
@@ -192,10 +192,10 @@ RTL8822BU가 USB 3.0 모드로 동작하면 2.4GHz 대역에 전파 간섭을 �
 
 | 카메라 | IP | MAC | RTSP 아이디 |
 |---|---|---|---|
-| cam1 | <cam1-IP> | <MAC> | camera |
-| cam2 | <cam2-IP> | <MAC> | camera2 |
-| cam3 | <cam3-IP> | <MAC> | camera3 |
-| cam4 | <cam4-IP> | <MAC> | camera4 |
+| cam1 | <cam1 IP> | <cam1 MAC> | camera |
+| cam2 | <cam2 IP> | <cam2 MAC> | camera2 |
+| cam3 | <cam3 IP> | <cam3 MAC> | camera3 |
+| cam4 | <cam4 IP> | <cam4 MAC> | camera4 |
 
 **왜 카메라를 학교 Wi-Fi가 아니라 자체 핫스팟에 붙였나**
 - 학교 Wi-Fi는 기기 간 통신이 막혀 있거나 인증이 필요해 카메라를 직접 붙이기 어렵다.
@@ -309,7 +309,7 @@ RTL8822BU가 USB 3.0 모드로 동작하면 2.4GHz 대역에 전파 간섭을 �
 - 외부 라이브러리 없이 Python 표준 `urllib`만 사용.
 
 ### 8-2. server.py (맥미니)
-위치: `~/cafeteria-server/`, gunicorn(워커 1, 스레드 4)으로 포트 8000, launchd `kr.sch.cafeteria`
+위치: `~/3학년 2학기/캡스톤/cafeteria-server/`, gunicorn(워커 1, 스레드 4)으로 포트 8000, launchd `kr.sch.cafeteria` (`venv/bin/python -m gunicorn`으로 실행. 폴더를 옮기면 venv 실행 파일의 경로가 깨지기 때문)
 
 | API | 기능 |
 |---|---|
@@ -346,11 +346,11 @@ WAL 모드를 켜서 저장과 조회가 동시에 일어나도 막히지 않게
 ### 8-4. 맥미니 운영 설정
 - **자동 실행:** `~/Library/LaunchAgents/kr.sch.cafeteria.plist` (RunAtLoad, KeepAlive)
 - **잠자기 끄기·정전 후 자동 켜기:** `sudo pmset -a sleep 0 disksleep 0 autorestart 1`
-- **로그:** `~/cafeteria-server/logs/out.log`, `err.log`
+- **로그:** `~/3학년 2학기/캡스톤/cafeteria-server/logs/out.log`, `err.log`
 
 ### 8-5. 백업
-- `~/cafeteria-server/backup_pi.sh`를 launchd `kr.sch.cafeteria.backup`이 **30분마다** 실행
-- rsync로 라즈베리파이의 `detections/`, `people_log.csv`, `zones.json`, `zones_history.jsonl`, `tables.json`, `tables_history.jsonl`, `people_count.py`를 `~/cafeteria-backup/`으로 복사
+- `~/3학년 2학기/캡스톤/cafeteria-server/backup_pi.sh`를 launchd `kr.sch.cafeteria.backup`이 **30분마다** 실행
+- rsync로 라즈베리파이의 `detections/`, `people_log.csv`, `zones.json`, `zones_history.jsonl`, `tables.json`, `tables_history.jsonl`, `people_count.py`를 `~/3학년 2학기/캡스톤/cafeteria-backup/`으로 복사
 - 변경된 부분만 복사하고, 라즈베리파이에서 지워진 파일도 맥미니에는 남는다 (`--delete` 미사용)
 - 비밀번호 없이 접속하도록 맥미니의 SSH 키를 라즈베리파이에 등록 (`ssh-copy-id`)
 
@@ -466,6 +466,10 @@ WAL 모드를 켜서 저장과 조회가 동시에 일어나도 막히지 않게
 | 2026-10-26 오후 | cam4 연결이 약해 핫스팟 전체가 느려져 cam4를 잠시 차단(iptables) → 다시 해제. 차단 동안 cam4 빈칸 |
 | **2026-10-27 18:44** | **추론 엔진을 OpenCV DNN → NCNN으로 교체** (4대 1회 약 4.5초 → 약 2초, 결과 동일) |
 | **2026-10-27 18:46** | **피크 6초 → 3초, 평상시 8초 → 5초** (하루 기록 수 약 2배) |
+| 2026-10-28 22:46 | 맥미니 서버·백업 폴더를 `~/3학년 2학기/캡스톤/` 아래로 이동 (launchd 두 개와 `backup_pi.sh` 경로 변경). 22:26~22:46 서버 중단 |
+| 2026-10-29 | 혼잡도 웹 보완: "식당 안" 비율을 좌석 기준으로 수정, "지금" 강조는 그래프 범위 안일 때만, 눈금 0·40·80·120·160, 지난 칸은 실제만·앞 칸은 예측+범위, 배치도를 전체 폭·카메라 구역별 51자리로 재배치(2·4·6인석 구분), 카메라 밖(1인석 9자리·기둥 통로)은 빨간 빗금, 밝은·어두운 화면 전환 추가 |
+| 2026-10-29 12:32 | 현장 관리 화면(:5000) 디자인 개편 (혼잡도 웹과 같은 규칙, 기능·구역 설정은 그대로). 라즈베리파이 people_count.py 교체 후 자동 재시작, 백업 people_count.py.bak_20261029 |
+| 2026-10-29 13:20 | 웹 디자인 후보 1(흰 카드·파랑 데이터)로 확정, 후보 2~5 코드·고르기 막대 정리 (이전 코드 index.html.bak_v7). 배치도 줄 배열을 실측대로 수정, 관리 화면에 학생용 화면 링크 추가 |
 | (예정) | 집계 구역 설정, 실제 좌석 수 반영 |
 
 ---
@@ -519,7 +523,7 @@ sudo shutdown -h now
 ```bash
 curl -s http://localhost:8000/api/latest; echo                 # 서버 확인
 launchctl kickstart -k gui/$(id -u)/kr.sch.cafeteria           # 서버 재시작
-tail -7 ~/cafeteria-server/logs/backup.log                     # 백업 확인
+tail -7 "$HOME/3학년 2학기/캡스톤/cafeteria-server/logs/backup.log"   # 백업 확인
 ```
 
 ### 팀원 tmux 공유
@@ -567,14 +571,14 @@ tmux -S /tmp/team attach -t team      # 나가기: Ctrl+b 후 d
 - 외부 공개(Tailscale Funnel)는 정확도 확보·교수님 승인 전까지 보류하기로 결정
 
 ### 10/22 (목) · cam4 추가
-- cam4 설치, 핫스팟 연결 (MAC <MAC> → <cam4-IP> 고정)
+- cam4 설치, 핫스팟 연결 (MAC <cam4 MAC> → <cam4 IP> 고정)
 - **16:34** people_count.py에 cam4 추가, 기록 파일 헤더에 cam4 칸 추가
 - 4대 처리 시간 실측 약 5.6~5.9초 → **16:36** 피크 주기 6초, 보정 시간 창 15초
 - 인수인계 문서(HANDOFF.md) 작성
 
 ### 10/26 (월) · cam4 주소 변경 장애
-- 오전에 cam4가 `connect failed` 반복. Wi-Fi로는 붙어 있으나 <cam4-IP>에 응답 없음
-- 원인: 10/22에 cams.conf에 고정 설정만 넣고 핫스팟을 다시 켜지 않아, 주말 사이 재접속하며 다른 IP을 받음
+- 오전에 cam4가 `connect failed` 반복. Wi-Fi로는 붙어 있으나 <cam4 IP>에 응답 없음
+- 원인: 10/22에 cams.conf에 고정 설정만 넣고 핫스팟을 다시 켜지 않아, 주말 사이 재접속하며 .166, .167을 받음
 - 10:10경 `nmcli connection up cam-ap`으로 고정 설정 적용 → cam4가 .165로 복구, 4대 모두 고정 주소 확인
 - 핫스팟 재시작 동안 카메라 4대가 1~2분 끊김 (그동안 기록은 빈칸)
 
@@ -616,7 +620,7 @@ tmux -S /tmp/team attach -t team      # 나가기: Ctrl+b 후 d
 | 1회 추론이 4.5초라 주기를 더 줄일 수 없음 | OpenCV DNN의 CPU 추론 속도 한계 | 같은 모델을 NCNN으로 변환해 비교 실험 → 결과 동일·약 2배 빠름 → 교체, 주기 3초로 단축 |
 | cam3·cam4가 같은 사람을 두 번 셈 | 집계 구역 미설정, 두 카메라 시야 겹침 | 겹치는 영역을 한 카메라에만 넣도록 구역 설정 (예정) |
 | 카메라가 잠깐 빠지면 합계가 출렁임 | 빠진 카메라를 빼고 합산 | 20초 이내 끊김은 직전 값을 유지하는 보정 (예정) |
-| 주말 뒤 cam4만 연결 안 됨 | IP 고정 설정을 넣고 핫스팟을 다시 켜지 않아 cam4가 다른 IP(다른 IP)를 받음 | 핫스팟 재시작으로 고정 적용. 이후 카메라 추가 절차에 "바로 적용" 추가 |
+| 주말 뒤 cam4만 연결 안 됨 | IP 고정 설정을 넣고 핫스팟을 다시 켜지 않아 cam4가 다른 IP(.167)를 받음 | 핫스팟 재시작으로 고정 적용. 이후 카메라 추가 절차에 "바로 적용" 추가 |
 | 첫 설정 중 SSH가 끊김 (Wi-Fi 프로필 이동 시) | 연결이 동글로 넘어가며 생긴 정상 동작 | Tailscale 주소로 재접속 |
 | 다운로드한 파일을 못 찾음 | 브라우저가 홈 폴더에 저장 | `find ~ -maxdepth 2 -name ...`로 위치 확인 |
 | 웹 화면에 명령어 글자가 보임 | 붙여넣을 때 명령어 줄이 index.html에 섞임 | 해당 줄 삭제 |
@@ -647,7 +651,7 @@ tmux -S /tmp/team attach -t team      # 나가기: Ctrl+b 후 d
 이 저장소에는 다음 값을 **올리지 않습니다.** 팀 내부에서 따로 보관합니다.
 - 학교 Wi-Fi, 아이폰 핫스팟, 카메라 핫스팟(`cap`) 비밀번호
 - 카메라 RTSP 비밀번호 (people_count.py의 `CAMS`에 들어 있음)
-- 서버 토큰 (`~/cafeteria-server/token.txt`, 라즈베리파이 `~/.push_token`)
+- 서버 토큰 (`~/3학년 2학기/캡스톤/cafeteria-server/token.txt`, 라즈베리파이 `~/.push_token`)
 
 코드를 저장소에 올릴 때는 `CAMS`의 비밀번호와 토큰을 지우거나 환경 변수·별도 파일로 빼고, `.gitignore`에 `token.txt`, `*.db`, `people_log*.csv`, `detections/`를 넣으세요. 저장소는 **비공개(private)**로 두는 것을 권장합니다.
 

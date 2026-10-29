@@ -8,3 +8,22 @@
 !docs/**/
 !docs/**/*.md
 !docs/**/*.pdf
+
+# ── 시스템 코드 (2026-10-29, 밥먹을래말래 운영본) ──
+!cafeteria-server/
+!cafeteria-server/**
+!pi/
+!pi/**
+!화면설계/
+!화면설계/**
+!화면설계/**/*.png
+# 비밀 값·데이터·백업은 어떤 경우에도 제외
+**/token.txt
+**/.push_token
+**/counts.db*
+**/state_latest.json
+**/logs/
+**/venv/
+**/*.bak*
+**/__pycache__/
+.DS_Store

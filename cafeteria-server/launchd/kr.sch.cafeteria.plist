@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>kr.sch.cafeteria</string>
+  <key>WorkingDirectory</key><string>/Users/seung1_won/3학년 2학기/캡스톤/cafeteria-server</string>
+  <key>ProgramArguments</key><array>
+    <string>/Users/seung1_won/3학년 2학기/캡스톤/cafeteria-server/venv/bin/python</string>
+    <string>-m</string><string>gunicorn</string>
+    <string>-w</string><string>1</string>
+    <string>--threads</string><string>4</string>
+    <string>-b</string><string>0.0.0.0:8000</string>
+    <string>server:app</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/Users/seung1_won/3학년 2학기/캡스톤/cafeteria-server/logs/out.log</string>
+  <key>StandardErrorPath</key><string>/Users/seung1_won/3학년 2학기/캡스톤/cafeteria-server/logs/err.log</string>
+</dict></plist>

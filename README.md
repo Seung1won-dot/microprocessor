@@ -116,3 +116,14 @@ flowchart LR
     ├── 프로젝트_상세.md        최종 구현 상세 · 운영 매뉴얼 · 발표 Q&A
     └── 진행기록/               날짜순 회의 · 설계 · 세팅 기록 (01 ~ 09)
 ```
+
+## 저장소 구성 (2026-10-29)
+
+| 위치 | 내용 |
+|---|---|
+| [docs/HANDOFF.md](docs/HANDOFF.md) | 인수인계·발표 대비 문서 (10/29 변경 이력까지, IP·MAC 가림) |
+| [cafeteria-server/](cafeteria-server/) | 맥미니 서버 — Flask `server.py`, 학생용 웹 `index.html`(디자인 확정본, 다크 모드), 백업 스크립트, launchd 설정 |
+| [pi/](pi/) | 라즈베리파이 — 인원 추론·관리 화면 `people_count.py`, 전송 `push_counts.py`, 집계 구역·테이블 영역 설정 |
+| [화면설계/디자인후보/](화면설계/디자인후보/) | 웹 디자인 후보 5종 비교, 1번 확정 기록과 화면 캡처 |
+
+코드의 Tailscale IP · 카메라 IP · MAC · 비밀번호는 플레이스홀더로 가렸습니다. 실제 값은 기기 원본과 [HANDOFF 18장](docs/HANDOFF.md#18-비밀-값-관리)의 방식으로 관리합니다.
