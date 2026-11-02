@@ -82,6 +82,31 @@ h2 .n{display:inline-flex;width:17px;height:17px;border-radius:50%;background:va
 .foot span:last-child{white-space:nowrap}
 .foot{margin-top:auto;padding-top:2mm;border-top:1px solid var(--border);font-size:8.4pt;color:var(--muted);display:flex;justify-content:space-between;gap:4mm}
 .foot b{color:var(--text)}
+/* 3쪽: 정확도 */
+.acc-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}
+.ak{border:1px solid var(--border);border-radius:7px;padding:3mm 4mm}
+.ak small{display:block;color:var(--muted);font-size:8.6pt}
+.ak b{display:block;font-size:26pt;line-height:1.15;letter-spacing:-.02em;color:var(--text)}
+.ak span{font-size:8.4pt;color:var(--muted)}
+.ak.hl{background:var(--data-tint);border-color:var(--data)} .ak.hl b{color:var(--data)}
+.method{display:flex;align-items:center;gap:1.6mm;flex-wrap:wrap;font-size:9pt;margin-top:.6mm}
+.method span{background:var(--raised);border:1px solid var(--border);border-radius:5px;padding:1mm 2.4mm}
+.method i{font-style:normal;color:var(--faint)}
+.defs{margin:2mm 0 0;font-size:8.2pt;color:var(--muted)}
+.mx{display:grid;grid-template-columns:15mm 1fr 1fr;gap:1.4mm;margin:1mm 0 2.6mm}
+.mx .h{font-size:8pt;color:var(--muted);display:flex;align-items:center;justify-content:center;text-align:center}
+.mx .h.r{justify-content:flex-start}
+.mx b{border-radius:5px;padding:2.4mm 0;text-align:center;font-size:11pt}
+.mx b small{display:block;font-size:7.4pt;font-weight:500;color:var(--muted)}
+.mx .ok{background:var(--ok-bg);color:var(--ok)} .mx .bad{background:var(--mid-bg);color:var(--mid)} .mx .na{background:var(--raised);color:var(--faint);font-size:8.4pt}
+table.ct{width:100%;border-collapse:collapse;font-size:8.8pt;font-variant-numeric:tabular-nums}
+table.ct th,table.ct td{padding:1.2mm 1.4mm;text-align:right;border-bottom:1px solid var(--border)}
+table.ct tr:first-child th{color:var(--muted);font-weight:600;font-size:8.2pt;border-bottom:1.2px solid var(--text)}
+table.ct th:first-child{text-align:left;color:var(--muted);font-weight:600}
+table.ct td.w{background:var(--mid-bg);color:var(--mid);font-weight:700}
+table.ct td:last-child{font-weight:700}
+.box ul.pt{margin:0;padding-left:4mm;font-size:9pt} .box ul.pt li{margin:.8mm 0}
+.ct-note{margin:1.4mm 0 0;font-size:7.8pt;color:var(--faint)}
 /* 뒷면 */
 table.chg{width:100%;border-collapse:collapse;font-size:8.9pt}
 table.chg th,table.chg td{text-align:left;vertical-align:top;padding:1.45mm 2mm;border-bottom:1px solid var(--border)}
@@ -112,7 +137,7 @@ table.chg td b{color:var(--data)}
 </style></head><body>
 
 <section class="page">
-  <div class="top"><span class="brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>밥먹을래말래</span><span>카메라 기반 학내 식당 실시간 혼잡도 안내 시스템 · 보조자료 1/2</span></div>
+  <div class="top"><span class="brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>밥먹을래말래</span><span>카메라 기반 학내 식당 실시간 혼잡도 안내 시스템 · 보조자료 1/3</span></div>
   <div>
     <h1>"꽉 찼다"는 기준을 어떻게 정했나</h1>
     <p class="lead">인원 몇 명 이상을 혼잡으로 나눈 것이 아니라, <b>학생의 질문에서 출발해 기준을 직접 정의</b>했습니다.</p>
@@ -209,7 +234,7 @@ table.chg td b{color:var(--data)}
 </section>
 
 <section class="page">
-  <div class="top"><span class="brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>밥먹을래말래</span><span>카메라 기반 학내 식당 실시간 혼잡도 안내 시스템 · 보조자료 2/2</span></div>
+  <div class="top"><span class="brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>밥먹을래말래</span><span>카메라 기반 학내 식당 실시간 혼잡도 안내 시스템 · 보조자료 2/3</span></div>
   <div>
     <h1>포스터 이후 바뀐 점</h1>
     <p class="lead">포스터 제출 뒤 식당에서 운영하며 <b>목표였던 테이블 판정과 대기 정보를 실제로 구현</b>하고, 처리 속도와 판단 기준을 개선했습니다.</p>
@@ -223,12 +248,12 @@ table.chg td b{color:var(--data)}
   <div class="same"><b>그대로인 것</b>시스템 구조, 영상은 기기 안에서만 처리하고 숫자만 전송, YOLO11n 사람 검출, 지난 평일 기록 기반 15분 단위 정보</div>
 
   <div>
-    <h2>지금 시스템 한눈에</h2>
+    <h2>정확도 검증 <span style="font-weight:400;color:var(--muted);font-size:8.8pt">10/29 점심 피크 · 화면 48장을 사람이 직접 확인 · 자세히는 3쪽</span></h2>
     <div class="kpis">
-      <div class="kpi"><b>4대</b><small>카메라 (좌석 3 · 키오스크 1)</small></div>
-      <div class="kpi"><b>51곳</b><small>등록 테이블 · 150석</small></div>
-      <div class="kpi"><b>약 2초</b><small>카메라 4대 1회 처리</small></div>
-      <div class="kpi"><b>3초</b><small>피크 시간 갱신 주기</small></div>
+      <div class="kpi"><b>0.85</b><small>테이블 점유 판정 F1</small></div>
+      <div class="kpi"><b>96%</b><small>사용 중 테이블 검출 (301칸 중 289)</small></div>
+      <div class="kpi"><b>0.77</b><small>사람 검출 F1</small></div>
+      <div class="kpi"><b>99%</b><small>사람 검출 정밀도 (오탐 5건)</small></div>
     </div>
   </div>
 
@@ -244,7 +269,7 @@ table.chg td b{color:var(--data)}
       <ul>
         <li>영상은 라즈베리파이 메모리에서 사람을 세는 데만 쓰고 버립니다. 기록하는 것은 <b>사람 수 · 박스 좌표 · 테이블 상태 같은 숫자뿐</b>입니다.</li>
         <li>카메라는 학교 네트워크가 아닌 라즈베리파이 전용 핫스팟에만 연결됩니다. 식당에 촬영 목적과 범위를 알리는 안내문을 붙였습니다.</li>
-        <li>저장한 이미지는 <b>설치 첫날(10/21) 모델 설정을 고르려고 확인한 정지 화면 8장</b>이 전부이며, 이후에는 저장하지 않습니다.</li>
+        <li>저장한 이미지는 <b>설치 첫날(10/21) 설정 확인용 정지 화면 8장</b>과 <b>정확도 평가용 화면 400장</b>(10/29 점심 5분, 그중 48장을 직접 확인)뿐이며, 평가에만 쓰고 공개하지 않습니다.</li>
         <li>YOLO11n은 <b>추가 학습 없이</b> 사전학습 모델을 그대로 써서, 학습용 영상도 모으지 않았습니다.</li>
         <li>전시 중 띄운 실시간 카메라 화면은 현장 확인용이며 저장하지 않습니다. 학생용 웹에는 숫자와 배치도만 나갑니다.</li>
         <li>웹에서 받는 <b>의견 응답과 방문 수는 익명으로만</b> 저장합니다 (이름 · 연락처 · IP 저장 안 함).</li>
@@ -255,5 +280,80 @@ table.chg td b{color:var(--data)}
   </div>
 
   <div class="foot"><span>순천향대학교 캡스톤디자인 · 시범 운영 2026.10.20 ~ 11.05 · 평일 08:00–19:30</span><span>제35회 공과대학 학술제</span></div>
+</section>
+<section class="page">
+  <div class="top"><span class="brand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>밥먹을래말래</span><span>카메라 기반 학내 식당 실시간 혼잡도 안내 시스템 · 보조자료 3/3</span></div>
+  <div>
+    <h1>실제로 얼마나 맞을까: 정확도 검증</h1>
+    <p class="lead">점심 피크 5분 동안 찍힌 카메라 화면 <b>48장을 사람이 직접 세어</b>, 시스템이 낸 결과와 하나씩 비교했습니다.</p>
+  </div>
+
+  <div class="acc-kpis">
+    <div class="ak"><small>사람 검출 F1</small><b>0.77</b><span>정밀도 0.99 · 재현율 0.64</span></div>
+    <div class="ak hl"><small>테이블 점유 판정 F1</small><b>0.85</b><span>정확도 0.82 · 정밀도 0.76</span></div>
+    <div class="ak hl"><small>테이블 점유 재현율</small><b>0.96</b><span>사용 중 301칸 중 289칸 검출</span></div>
+  </div>
+
+  <div class="box">
+    <h2><span class="n">1</span>평가 방법</h2>
+    <div class="method"><span>10/29 점심 피크 5분</span><i>→</i><span>카메라 4대 · 3초 간격 화면 400장</span><i>→</i><span>그중 48장 (카메라당 12장)</span><i>→</i><span>실제 사람 719명 · 테이블 575칸을 직접 표시</span></div>
+    <p class="defs">TP 맞게 잡음 · FP 잘못 잡음 · FN 놓침 · TN 빈 테이블을 빈 것으로 봄 (사람 검출에는 TN 없음) &nbsp;|&nbsp; 정밀도 = TP ÷ (TP+FP) · 재현율 = TP ÷ (TP+FN) · F1 = 2TP ÷ (2TP+FP+FN)</p>
+  </div>
+
+  <div class="row r2">
+    <div class="box">
+      <h2><span class="n">2</span>사람 검출</h2>
+      <div class="mx">
+        <span></span><span class="h">실제 사람</span><span class="h">사람 아님</span>
+        <span class="h r">잡음</span><b class="ok">457<small>TP 맞게 잡음</small></b><b class="bad">5<small>FP 잘못 잡음</small></b>
+        <span class="h r">놓침</span><b class="bad">262<small>FN 놓친 사람</small></b><b class="na">TN<small>정의 안 됨</small></b>
+      </div>
+      <table class="ct">
+        <tr><th></th><th>cam1</th><th>cam2</th><th>cam3</th><th>cam4</th><th>전체</th></tr>
+        <tr><th>정밀도</th><td>0.97</td><td>1.00</td><td>0.99</td><td>1.00</td><td>0.99</td></tr>
+        <tr><th>재현율</th><td>0.76</td><td>0.68</td><td>0.58</td><td class="w">0.46</td><td>0.64</td></tr>
+        <tr><th>F1</th><td>0.86</td><td>0.81</td><td>0.73</td><td>0.63</td><td>0.77</td></tr>
+      </table>
+      <p class="ct-note">장당 오탐 0.10건 · 재현율이 가장 낮은 cam4는 키오스크 줄을 세는 카메라</p>
+    </div>
+    <div class="box">
+      <h2><span class="n">3</span>테이블 점유 판정</h2>
+      <div class="mx">
+        <span></span><span class="h">실제 사용 중</span><span class="h">실제 빈 테이블</span>
+        <span class="h r">사용 중<br>으로 봄</span><b class="ok">289<small>TP</small></b><b class="bad">92<small>FP 빈 걸 사용 중으로</small></b>
+        <span class="h r">빈 걸로<br>봄</span><b class="bad">12<small>FN 사용 중을 빈 걸로</small></b><b class="ok">182<small>TN</small></b>
+      </div>
+      <table class="ct">
+        <tr><th></th><th>cam1</th><th>cam2</th><th>cam3</th><th>cam4</th><th>전체</th></tr>
+        <tr><th>정밀도</th><td>0.81</td><td>0.69</td><td>0.78</td><td>—</td><td>0.76</td></tr>
+        <tr><th>재현율</th><td>1.00</td><td>0.93</td><td>0.96</td><td>—</td><td>0.96</td></tr>
+        <tr><th>오점유율</th><td>18%</td><td class="w">43%</td><td class="w">40%</td><td>—</td><td>34%</td></tr>
+      </table>
+      <p class="ct-note">오점유율 = 빈 테이블을 사용 중으로 표시한 비율 · cam4는 테이블이 없어 제외</p>
+    </div>
+  </div>
+
+  <div class="row r2">
+    <div class="box">
+      <h2><span class="n">4</span>우리 시스템에 주는 의미</h2>
+      <ul class="pt">
+        <li><b>사람은 잘못 잡는 일이 거의 없지만</b>(48장에서 5건), 가려지거나 작게 찍힌 사람을 놓쳐 <b>실제 인원의 약 64%만</b> 셉니다. 화면의 "식당 예상 인원"은 실제보다 적게 나올 수 있어요.</li>
+        <li>혼잡 단계는 테이블 좌석 기준이라 영향이 작습니다. <b>사용 중인 테이블의 96%</b>를 잡아냅니다.</li>
+        <li>테이블 판정은 빈 테이블을 사용 중으로 보는 쪽(34%)으로 틀려 <b>실제보다 붐비게</b> 안내합니다. 헛걸음을 막는 보수적인 방향이에요.</li>
+        <li>사람 오탐이 5건뿐이라, 테이블 오점유는 영역 설정과 판정 방식(옆 테이블·지나가는 사람)에서 생긴 것으로 봅니다.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h2><span class="n">5</span>한계와 개선 방향</h2>
+      <ul class="pt">
+        <li>점심 피크 5분 한 구간, 48장 평가라 다른 시간대와 날짜로 추가 검증이 필요합니다.</li>
+        <li>테이블 영역을 좁히고 발 위치 기준으로 판정하면 cam2 · cam3의 오점유(40% 이상)를 줄일 수 있습니다.</li>
+        <li>사람 미탐(cam3 · cam4)은 카메라 각도 · 해상도 조정, 동의받은 데이터로 하는 추가 학습으로 개선할 수 있습니다.</li>
+        <li>운영 중에는 이용자의 "실제랑 비슷했나요?" 응답으로 정확도를 계속 확인합니다.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="foot"><span>평가 · 라벨링: 팀 직접 수행 · 원본 표 docs/추론 모델 정확성 평가.xlsx</span><span>평가용 화면은 정확도 평가에만 쓰고 공개하지 않습니다</span></div>
 </section>
 </body></html>
