@@ -32,6 +32,10 @@ USE_NCNN = True                   # NCNN runs ~1.5x faster on the Pi; falls back
 NCNN_MODEL = "yolo11n_1280_ncnn_model"      # same weights as MODEL, exported with imgsz=1280
 SD_NCNN_MODEL = "yolo11n_1280_ncnn_model"
 NCNN_THREADS = 4
+SHADOW_MODEL = "yolo26n_1280_ncnn_model"   # comparison model: runs on one camera per round when time is left, never shown (None = off)
+SHADOW_ONNX = "yolo26n_1280.onnx"          # same weights for the OpenCV DNN fallback
+SHADOW_CONF = 0.05                         # log low-score boxes too so thresholds can be compared afterwards
+SHADOW_DIR = "shadow"                      # per-day JSONL: both models' people for the same frame (numbers only)
 
 KIOSK_CAMS = {"cam4"}             # these cameras watch the kiosk queue, not seats
 KIOSK_N = 3                       # people standing at the kiosks are ordering, not waiting
@@ -54,7 +58,7 @@ OUT_FPS = 2                       # frames per second sent to the browser
 ZONES_FILE = "zones.json"         # counting area per camera (set from the web page)
 LOG_CSV = "people_log.csv"        # timestamp, smoothed count per camera, total, raw total
 DET_DIR = "detections"            # per-day JSONL: every detected person's position (no images)
-TABLES_FILE = "tables.json"       # table areas per camera (set from /tables page, not used for counting yet)
+TABLES_FILE = "tables.json"       # table areas per camera (set from /tables page); the same id on several cameras = one table
 SETUP_KEEPALIVE = 180             # /tables page open outside hours -> keep video (no inference) this long
 TABLE_IDS = [f"T{i}" for i in range(1, 151)] + [f"S{i}" for i in range(1, 11)]   # T = 테이블 1개 + 의자 2개(자리 단위), S = 1인석
 
@@ -109,6 +113,24 @@ def load_tables():
 
 tables = load_tables()             # {"cam1": [{"id": "T3", "seats": 4, "partial": false, "pts": [[x, y], ...]}]}
 tables_lock = threading.Lock()
+
+
+def table_registry():
+    """Tables as objects: one entry per id, joining every camera view of it.
+    {"T3": {"seats": 4, "zone": "cam1", "cams": ["cam1", "cam3"]}}. zone = the first camera (by name) that sees
+    the whole table, else the first that sees part of it; per-area numbers (구역) are grouped by it."""
+    with tables_lock:
+        views = [(cam, t) for cam in sorted(tables) if cam not in KIOSK_CAMS for t in tables[cam]]
+    reg, full = {}, {}
+    for cam, t in views:
+        r = reg.setdefault(t["id"], {"seats": t["seats"], "zone": cam, "cams": []})
+        r["seats"] = max(r["seats"], t["seats"])
+        r["cams"].append(cam)
+        if not t.get("partial") and t["id"] not in full:
+            full[t["id"]] = cam
+    for tid, cam in full.items():
+        reg[tid]["zone"] = cam
+    return reg
 setup_until = [0.0]                # while the /tables page is open, video keeps streaming even when closed
 
 
@@ -183,18 +205,19 @@ class Camera:
         return buf.tobytes() if ok else None
 
 
-def parse_output(out, frame_shape, img=None):
-    img = img or IMG
+def parse_output(out, frame_shape, img=None, conf=None):
     """out: (84, 8400) for one image -> list of [x, y, w, h, score] person boxes."""
+    img = img or IMG
+    conf = CONF_MIN if conf is None else conf
     h, w = frame_shape[:2]
     out = out.T
     scores = out[:, 4]                # class 0 = person
-    keep = scores > CONF_MIN
+    keep = scores > conf
     out, scores = out[keep], scores[keep]
     sx, sy = w / img, h / img
     boxes = [[int((cx - bw / 2) * sx), int((cy - bh / 2) * sy), int(bw * sx), int(bh * sy)]
              for cx, cy, bw, bh in out[:, :4]]
-    idx = cv2.dnn.NMSBoxes(boxes, scores.tolist(), CONF_MIN, NMS)
+    idx = cv2.dnn.NMSBoxes(boxes, scores.tolist(), conf, NMS)
     return [boxes[i] + [float(scores[i])] for i in np.array(idx).flatten()] if len(idx) else []
 
 
@@ -253,7 +276,7 @@ def load_net(onnx_path, ncnn_dir):
     return cv2.dnn.readNetFromONNX(onnx_path)
 
 
-def detect_batch(net, frames, img=None):
+def detect_batch(net, frames, img=None, conf=None):
     img = img or IMG
     results = []
     for i in range(0, len(frames), MODEL_BATCH):
@@ -263,7 +286,7 @@ def detect_batch(net, frames, img=None):
         net.setInput(blob)
         out = net.forward()
         for j, frame in enumerate(chunk):
-            results.append(parse_output(out[j], frame.shape, img))
+            results.append(parse_output(out[j], frame.shape, img, conf))
     return results
 
 
@@ -333,19 +356,15 @@ class TableTracker:
     # Per-table state machine: empty -> occupied -> away -> empty, driven by detections inside the table area.
 
     def __init__(self):
-        self.hits, self.last_seen, self.state, self.people = {}, {}, {}, {}
+        self.hits, self.last_seen, self.state, self.people, self.since = {}, {}, {}, {}, {}
 
     def reset(self):
         self.__init__()
 
-    def update(self, now_t, per_cam, online):
-        with tables_lock:
-            reg = {}
-            for cam, lst in tables.items():
-                if cam in KIOSK_CAMS:
-                    continue
-                for t in lst:
-                    reg.setdefault(t["id"], {"seats": t["seats"], "cams": set()})["cams"].add(cam)
+    def update(self, now_t, per_cam, online, ts=None):
+        # per_cam = {cam: {table id: people}}. A table seen by several cameras takes the largest count,
+        # and keeps being judged while at least one of its cameras is online.
+        reg = table_registry()
         merged = {}
         for cam, d in per_cam.items():
             for tid, n in d.items():
@@ -353,8 +372,10 @@ class TableTracker:
         out, changes = {}, {}
         for tid, info in reg.items():
             st = self.state.get(tid, "empty")
-            if not (info["cams"] & online):          # every camera for this table is offline: keep state
-                out[tid] = {"st": st, "n": self.people.get(tid, 0), "seats": info["seats"], "unknown": True}
+            self.since.setdefault(tid, ts)
+            base = {"seats": info["seats"], "zone": info["zone"], "cams": info["cams"], "since": self.since[tid]}
+            if not (set(info["cams"]) & online):     # every camera for this table is offline: state unknown
+                out[tid] = dict(base, st=st, n=self.people.get(tid, 0), unknown=True)
                 continue
             n = merged.get(tid, 0)
             dq = self.hits.setdefault(tid, deque())
@@ -377,16 +398,17 @@ class TableTracker:
                     new = "empty"
             if new != st:
                 changes[tid] = new
+                self.since[tid] = base["since"] = ts
             self.state[tid] = new
             people = 0
             if new == "occupied" and dq:
                 vals = sorted(v for _, v in dq)
                 people = min(info["seats"], max(1, vals[int(0.75 * (len(vals) - 1))]))
             self.people[tid] = people
-            out[tid] = {"st": new, "n": people, "seats": info["seats"]}
+            out[tid] = dict(base, st=new, n=people)
         for tid in list(self.state):
             if tid not in reg:
-                for d in (self.state, self.hits, self.people, self.last_seen):
+                for d in (self.state, self.hits, self.people, self.last_seen, self.since):
                     d.pop(tid, None)
         return out, changes
 
@@ -395,23 +417,32 @@ tracker = TableTracker()
 
 
 def count_tables(name, frame, boxes):
-    # People inside each registered table area of this camera (foot or box centre inside).
-    # Also draws the areas on the frame, coloured by their current state.
+    # People at each registered table area of this camera. Each person counts for one table only:
+    # the one their feet are in (the deepest one if several overlap), else the one their box centre is in.
+    # Counting a person in every area they touch made neighbouring tables look used (replay of 11/4: 11.8%
+    # of people touched 2+ areas). Also draws the areas on the frame, coloured by their current state.
     with tables_lock:
         tlist = list(tables.get(name, []))
     if not tlist:
         return {}
     h, w = frame.shape[:2]
-    out = {}
-    for t in tlist:
-        pts = np.array([[int(x * w), int(y * h)] for x, y in t["pts"]], np.int32)
-        n = 0
-        for x, y, bw, bh, score in boxes:
-            foot = (float(x + bw / 2), float(y + bh))
-            centre = (float(x + bw / 2), float(y + bh / 2))
-            if cv2.pointPolygonTest(pts, foot, False) >= 0 or cv2.pointPolygonTest(pts, centre, False) >= 0:
-                n += 1
-        out[t["id"]] = n
+    polys = [(t, np.array([[int(x * w), int(y * h)] for x, y in t["pts"]], np.int32)) for t in tlist]
+    out = {t["id"]: 0 for t in tlist}
+    for x, y, bw, bh, score in boxes:
+        foot = (float(x + bw / 2), float(y + bh))
+        centre = (float(x + bw / 2), float(y + bh / 2))
+        best = None
+        for t, pts in polys:
+            df = cv2.pointPolygonTest(pts, foot, True)
+            dc = cv2.pointPolygonTest(pts, centre, True)
+            if df < 0 and dc < 0:
+                continue
+            key = (0, -df) if df >= 0 else (1, -dc)       # feet inside first, then the deepest inside
+            if best is None or key < best[0]:
+                best = (key, t["id"])
+        if best:
+            out[best[1]] += 1
+    for t, pts in polys:
         st = tracker.state.get(t["id"], "empty")
         color = TBL_COLOR[st]
         if st == "occupied":
@@ -443,17 +474,34 @@ def build_state(ts, mode, counts, tstate):
             kiosk = {"cam": kc, "people": k, "n": KIOSK_N, "rate": KIOSK_RATE, "queue": q,
                      "wait_min": (round(q / KIOSK_RATE, 1) if q is not None else None)}
             break
-    summ = None
+    summ = zones_sum = None
     if tstate:
-        occ = [v for v in tstate.values() if v["st"] == "occupied"]
-        away = [v for v in tstate.values() if v["st"] == "away"]
-        emp = [v for v in tstate.values() if v["st"] == "empty"]
-        summ = {"total": len(tstate), "occupied": len(occ), "away": len(away), "empty": len(emp),
-                "seats": sum(v["seats"] for v in tstate.values()),
+        # Tables whose cameras are all offline are left out of the totals (their state is unknown), so seats and
+        # people both cover only the part of the room that is being watched right now.
+        known = [v for v in tstate.values() if not v.get("unknown")]
+        occ = [v for v in known if v["st"] == "occupied"]
+        away = [v for v in known if v["st"] == "away"]
+        emp = [v for v in known if v["st"] == "empty"]
+        summ = {"total": len(known), "occupied": len(occ), "away": len(away), "empty": len(emp),
+                "seats": sum(v["seats"] for v in known),
                 "free_seats": sum(v["seats"] for v in emp),
-                "people": sum(v["n"] for v in occ)}
+                "people": sum(v["n"] for v in occ),
+                "unknown": len(tstate) - len(known),
+                "unknown_seats": sum(v["seats"] for v in tstate.values() if v.get("unknown"))}
+        zones_sum = {}                                # per area (구역 = table's main camera)
+        for v in tstate.values():
+            z = zones_sum.setdefault(v["zone"], {"tables": 0, "seats": 0, "free_seats": 0, "occupied": 0, "away": 0,
+                                                 "empty": 0, "unknown_seats": 0, "people": seat_cams.get(v["zone"])})
+            if v.get("unknown"):
+                z["unknown_seats"] += v["seats"]
+                continue
+            z["tables"] += 1
+            z["seats"] += v["seats"]
+            z[v["st"]] += 1
+            if v["st"] == "empty":
+                z["free_seats"] += v["seats"]
     return {"t": ts, "mode": mode, "seating": {"people": people, "cams": seat_cams},
-            "kiosk": kiosk, "tables": tstate, "summary": summ}
+            "kiosk": kiosk, "tables": tstate, "summary": summ, "zones": zones_sum}
 
 
 def write_state(obj):
@@ -465,6 +513,49 @@ def write_state(obj):
         os.replace(tmp, STATE_FILE)
     except Exception as e:
         print(f"[state] write failed: {e}")
+
+
+shadow = {"net": None, "next": 0, "cost": 0.6, "failed": False}
+
+
+def zone_flags(name, shape, boxes):
+    """1 if the feet of each box are inside this camera's counting zone (same rule as count_in_zone, no drawing)."""
+    h, w = shape[:2]
+    with zones_lock:
+        poly = zones.get(name)
+    if not poly or len(poly) < 3:
+        return [1] * len(boxes)
+    pts = np.array([[int(x * w), int(y * h)] for x, y in poly], np.int32)
+    return [int(cv2.pointPolygonTest(pts, (float(x + bw / 2), float(y + bh)), False) >= 0) for x, y, bw, bh, _ in boxes]
+
+
+def shadow_round(pick, main_boxes, ts, t0, interval):
+    """Runs SHADOW_MODEL on one camera's untouched frame when this round still has time left, and logs both
+    models' people for that same frame as [foot x, foot y, score, in zone]. Comparison only: nothing shown uses it."""
+    if main_boxes is None or time.time() - t0 + shadow["cost"] > interval - 0.1:
+        return
+    name, frame = pick
+    try:
+        if shadow["net"] is None:
+            shadow["net"] = load_net(SHADOW_ONNX, SHADOW_MODEL)
+        t1 = time.time()
+        boxes = detect_batch(shadow["net"], [frame], IMG, SHADOW_CONF)[0]
+        shadow["cost"] = time.time() - t1
+    except Exception as e:
+        print(f"[shadow] turned off: {e}")
+        shadow["failed"] = True
+        return
+
+    def recs(bs):
+        return [[int(x + bw / 2), int(y + bh), round(s, 3), z] for (x, y, bw, bh, s), z in zip(bs, zone_flags(name, frame.shape, bs))]
+    rec = {"t": ts, "cam": name, "th": CAM_CONF.get(name, CONF), "ms": round(shadow["cost"] * 1000),
+           "main": recs(main_boxes), "shadow": recs(boxes)}
+    try:
+        os.makedirs(SHADOW_DIR, exist_ok=True)
+        with open(os.path.join(SHADOW_DIR, f"shadow_{ts[:10]}.jsonl"), "a") as f:
+            f.write(json.dumps(rec, separators=(",", ":")) + "\n")
+    except Exception as e:
+        print(f"[shadow] log failed: {e}")
 
 
 def inference_loop():
@@ -498,6 +589,11 @@ def inference_loop():
         read_temp()
         snap = [(n, cams[n].latest_raw()) for n in names]
         ready = [(n, f) for n, f in snap if f is not None]
+        pick = None                                   # comparison model: next camera in turn, before anything is drawn on it
+        if ready and SHADOW_MODEL and not shadow["failed"]:
+            n_s, f_s = ready[shadow["next"] % len(ready)]
+            shadow["next"] += 1
+            pick = (n_s, f_s.copy())
         if ready:
             if net_sd is None:
                 results = detect_batch(net, [f for _, f in ready])
@@ -510,6 +606,7 @@ def inference_loop():
                         for i, r in zip(idxs, detect_batch(model, [ready[i][1] for i in idxs], size)):
                             results[i] = r
             counts, raw_total, per_cam, tbl_counts = {}, 0, {}, {}
+            main_boxes = {n: boxes for (n, _), boxes in zip(ready, results)}
             for (n, frame), boxes in zip(ready, results):
                 th = CAM_CONF.get(n, CONF)
                 boxes = [b for b in boxes if b[4] > th]
@@ -537,16 +634,19 @@ def inference_loop():
             ts = now.strftime("%Y-%m-%d %H:%M:%S")
             log_row(ts, counts, total, raw_total, mode, interval)
             log_detections(now, mode, interval, per_cam)
-            state["last"] = {"t": ts, "cams": per_cam}
+            state["last"] = {"t": ts, "cams": per_cam, "tables": tbl_counts}
             try:
-                tstate, changes = tracker.update(t0, tbl_counts, {n for n, _ in ready})
+                tstate, changes = tracker.update(t0, tbl_counts, {n for n, _ in ready}, ts)
                 if changes:
                     with open(TABLES_LOG, "a") as f:
                         f.write(json.dumps({"t": ts, "changes": changes}) + "\n")
                 write_state(build_state(ts, mode, counts, tstate))
             except Exception as e:
                 print(f"[tables] {e}")
-            print(f"[{ts}] {mode} {counts} total={total} (raw {raw_total}, {time.time() - t0:.2f}s)")
+            took = time.time() - t0
+            if pick:
+                shadow_round(pick, main_boxes.get(pick[0]), ts, t0, interval)
+            print(f"[{ts}] {mode} {counts} total={total} (raw {raw_total}, {took:.2f}s)")
         time.sleep(max(0, interval - (time.time() - t0)))
 
 
@@ -868,6 +968,7 @@ button.on{background:var(--data);border-color:var(--data);color:var(--on-data)}
 button.primary{background:var(--ok-fill);border-color:var(--ok-fill);color:#fff}
 .msg{font-size:13px;color:var(--ok);min-height:18px;margin-top:8px}
 .warn{color:var(--mid)}
+.multi{color:var(--data)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 td{padding:6px 2px;border-bottom:1px solid var(--rule)}
 td button{height:28px;margin:0}
@@ -888,8 +989,8 @@ td.r{text-align:right}
 <h1>테이블 영역 설정</h1>
 <div class="help">
  <b>기준: 테이블 1개 + 의자 2개 = 자리 1개(T번호, 2석)</b>, 1인석은 S번호(1석)예요. 자리마다 <b>의자까지 포함해서</b> 꼭짓점을 3~8개 찍고 [테이블 추가]를 누르세요. 바로 저장되고 다음 번호가 자동으로 선택돼요. 두 카메라에 같은 자리가 보이면 <b>같은 번호</b>로 찍으세요.
- 화면에 일부만 보이면 "일부만 보임"을 체크하세요. 같은 번호를 여러 카메라에 찍어도 되고, 나중에 담당 카메라를 정해요.
- 이 화면은 인원 계산에 영향을 주지 않아요. 운영 시간이면 사람 위치(흰 점)와 테이블별 감지 인원이 함께 보여요.
+ 화면에 일부만 보이면 "일부만 보임"을 체크하세요. <b>같은 번호를 여러 카메라에 찍으면 한 테이블로 합쳐 판정해요</b>: 카메라 하나가 꺼지거나 가려져도 다른 카메라로 계속 판정하고, 구역은 테이블 전체가 보이는 카메라를 따라가요.
+ 여기 등록한 테이블은 자리 판정과 혼잡도에 바로 쓰여요. 한 사람은 발이 있는 테이블 하나에만 세요. 운영 시간이면 사람 위치(흰 점)와 테이블별 감지 인원이 함께 보여요.
 </div>
 <div class="tabs" id="tabs"></div>
 <div class="layout">
@@ -961,7 +1062,12 @@ function people(){
   if (!d) return [];
   return d.p.map(p => ({foot: [p[0] / d.w, p[1] / d.h], center: [(p[2] + p[4] / 2) / d.w, (p[3] + p[5] / 2) / d.h]}));
 }
-function occupancy(t, ps){ return ps.filter(p => inside(p.foot, t.pts) || inside(p.center, t.pts)).length; }
+// 테이블별 인원: 라즈베리파이가 한 사람을 테이블 하나에만 나눠 센 값 (없으면 화면에서 대략 계산)
+function occupancy(t, ps){
+  const srv = last && last.tables && last.tables[cur];
+  if (srv && t.id in srv) return srv[t.id];
+  return ps.filter(p => inside(p.foot, t.pts) || inside(p.center, t.pts)).length;
+}
 
 function draw(){
   cv.width = cv.clientWidth; cv.height = cv.clientHeight;
@@ -1032,13 +1138,13 @@ function buildList(){
   $('list').innerHTML = list.map(t => {
     const others = where(t.id).filter(c => c !== cur);
     const n = occupancy(t, ps);
-    return `<tr><td><span class="dot" style="background:${last && n ? '#3c6' : '#0cf'}"></span><b>${t.id}</b> ${t.seats}석${t.partial ? ' · 일부' : ''}${others.length ? ' <span class="warn">· ' + others.join(', ') + '에도 있음</span>' : ''}</td>`
+    return `<tr><td><span class="dot" style="background:${last && n ? '#3c6' : '#0cf'}"></span><b>${t.id}</b> ${t.seats}석${t.partial ? ' · 일부' : ''}${others.length ? ' <span class="multi">· ' + others.join(', ') + '에서도 보임 (합쳐 판정)</span>' : ''}</td>`
          + `<td class="r">${last ? n + '명' : ''}</td><td class="r"><button onclick="removeTable('${t.id}')">삭제</button></td></tr>`;
   }).join('') || '<tr><td class="stat">아직 없어요. 영상 위를 클릭해 시작하세요.</td></tr>';
   $('live').textContent = last ? '사람 위치 기준: ' + last.t : '운영 시간이 아니라 사람 위치는 표시되지 않아요.';
   const done = IDS.filter(id => where(id).length), dup = IDS.filter(id => where(id).length > 1);
   const missing = IDS.filter(id => !where(id).length);
-  $('overall').innerHTML = `등록 ${done.length}/${IDS.length}개 · 여러 카메라에 있음 ${dup.length}개<br>`
+  $('overall').innerHTML = `등록 ${done.length}/${IDS.length}개 · 여러 카메라로 보는 테이블 ${dup.length}개<br>`
     + (done.length ? '등록된 번호: ' + done.join(', ') + '<br>' : '') + (missing.length ? '다음 빈 번호: ' + missing.filter(x => x.startsWith('T'))[0] + ' · 남은 번호 ' + missing.length + '개' : '모든 번호가 등록됐어요.');
 }
 function refresh(){ buildTabs(); buildSelect(); buildList(); draw(); }
@@ -1080,6 +1186,13 @@ def tables_page():
 def get_tables():
     with tables_lock:
         return jsonify(tables)
+
+
+@app.route("/api/registry")
+def registry():
+    """Tables as objects (every camera view joined) with their current state."""
+    live = (state.get("snapshot") or {}).get("tables") or {}
+    return jsonify({tid: dict(info, state=live.get(tid)) for tid, info in table_registry().items()})
 
 
 @app.route("/api/tables/<name>", methods=["POST"])

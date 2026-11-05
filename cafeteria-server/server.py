@@ -5,6 +5,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 DB = os.path.join(BASE, "counts.db")
 STATE_PATH = os.path.join(BASE, "state_latest.json")
 LAYOUT_PATH = os.path.join(BASE, "layout.json")
+ZONE_SEATS_PATH = os.path.join(BASE, "zone_seats.json")
 TOKEN = open(os.path.join(BASE, "token.txt")).read().strip()
 
 CAPACITY = 120                   # 좌석 수 (테이블 등록이 끝나면 등록된 좌석 수를 자동으로 씀)
@@ -18,6 +19,9 @@ SLOT_MIN = 15
 WINDOWS = [("점심", "11:00", "14:00"), ("저녁", "16:30", "19:30")]
 WINDOW_SWITCH = "15:15"
 CACHE_SEC = 20
+TBL_EMPTY = 240                  # 라즈베리파이 설정과 같게: 마지막으로 본 뒤 이만큼 지나야 "빈 자리"가 됨 (이용 시간에서 뺌)
+# 구역(카메라)별 좌석 수: 라즈베리파이 상태에 구역 합계가 오면 zone_seats.json으로 갱신 (11/3 재배치 기준 기본값)
+ZONE_SEATS_DEFAULT = {"cam1": 36, "cam2": 58, "cam3": 66}
 
 app = Flask(__name__)
 _cache, _lock = {}, threading.Lock()
@@ -48,10 +52,24 @@ with db() as con:
         id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, day TEXT, cid TEXT, ref TEXT)""")
     if "source" not in [r[1] for r in con.execute("PRAGMA table_info(feedback)")]:
         con.execute("ALTER TABLE feedback ADD COLUMN source TEXT")     # button / return (돌아왔을 때 알림)
+    cols = [r[1] for r in con.execute("PRAGMA table_info(state_log)")]
+    if "zones" not in cols:
+        con.execute("ALTER TABLE state_log ADD COLUMN zones TEXT")            # 구역별 합계 JSON
+        con.execute("ALTER TABLE state_log ADD COLUMN unknown_seats INTEGER")  # 카메라가 꺼져 판정 못 한 좌석
+    # 테이블 상태가 바뀐 순간 한 줄 (테이블별 이용 횟수·이용 시간 계산용)
+    con.execute("""CREATE TABLE IF NOT EXISTS table_events(
+        ts TEXT, tid TEXT, st TEXT, n INTEGER, zone TEXT, PRIMARY KEY(ts, tid))""")
 
 try:
     with open(STATE_PATH) as f:
         latest_state["obj"] = json.load(f)
+except Exception:
+    pass
+
+zone_seats = dict(ZONE_SEATS_DEFAULT)
+try:
+    with open(ZONE_SEATS_PATH) as f:
+        zone_seats.update(json.load(f))
 except Exception:
     pass
 
@@ -83,6 +101,36 @@ def kiosk_count(cams):
 
 def level_from_ratio(free_ratio):
     return "여유" if free_ratio >= 0.3 else "보통" if free_ratio >= 0.1 else "혼잡"
+
+
+def zone_label(z):
+    return "키오스크 줄" if z in KIOSK_CAMS else "구역 " + z.replace("cam", "")
+
+
+def zone_status(z, v):
+    """구역 하나의 지금 상태: 전체와 같은 계산 (사용 좌석 = max(점유 테이블 좌석, 그 카메라 인원))."""
+    seats, people = v.get("seats") or 0, v.get("people")
+    out = {"zone": z, "label": zone_label(z), "seats": seats, "free_seats": v.get("free_seats"),
+           "unknown_seats": v.get("unknown_seats") or 0, "people": people,
+           "occupied": v.get("occupied"), "away": v.get("away"), "empty": v.get("empty")}
+    if seats:
+        used = max(seats - (v.get("free_seats") or 0), people or 0)
+        ratio = max(0.0, (seats - used) / seats)
+        out.update(used_seats=used, free_pct=round(ratio * 100), level=level_from_ratio(ratio))
+    return out
+
+
+def table_changes(prev, cur):
+    """앞 상태와 비교해 바뀐 테이블: [(id, 상태, 인원, 구역)]. 처음 보는 빈 테이블은 기록하지 않음."""
+    before = (prev or {}).get("tables") or {}
+    out = []
+    for tid, v in ((cur or {}).get("tables") or {}).items():
+        if v.get("unknown") or not v.get("st"):
+            continue
+        p = before.get(tid)
+        if (p is None and v["st"] != "empty") or (p is not None and p.get("st") != v["st"]):
+            out.append((tid, v["st"], v.get("n"), v.get("zone")))
+    return out
 
 
 def slot_of(hm):
@@ -139,19 +187,32 @@ def ingest_state():
     if not isinstance(obj, dict) or "t" not in obj:
         return jsonify(error="bad state"), 400
     obj["received_at"] = datetime.datetime.now().isoformat(timespec="seconds")
-    latest_state["obj"] = obj
+    prev, latest_state["obj"] = latest_state["obj"], obj
     try:
         with open(STATE_PATH + ".tmp", "w") as f:
             json.dump(obj, f, ensure_ascii=False)
         os.replace(STATE_PATH + ".tmp", STATE_PATH)
     except Exception:
         pass
+    zones = obj.get("zones") or {}
+    seats_now = {z: (v.get("seats") or 0) + (v.get("unknown_seats") or 0) for z, v in zones.items()}
+    if seats_now and any(zone_seats.get(z) != n for z, n in seats_now.items()):
+        zone_seats.update(seats_now)                   # 테이블 등록이 바뀌면 구역 좌석 수도 따라감
+        try:
+            with open(ZONE_SEATS_PATH, "w") as f:
+                json.dump(zone_seats, f)
+        except Exception:
+            pass
     sm, k, seating = obj.get("summary") or {}, obj.get("kiosk") or {}, obj.get("seating") or {}
     with db() as con:
-        con.execute("INSERT OR IGNORE INTO state_log VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        con.execute("""INSERT OR IGNORE INTO state_log(ts, seat_people, tables_total, tables_empty, tables_occupied,
+                       tables_away, free_seats, kiosk_people, kiosk_queue, kiosk_wait, received_at, zones, unknown_seats)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (obj["t"], seating.get("people"), sm.get("total"), sm.get("empty"), sm.get("occupied"),
                      sm.get("away"), sm.get("free_seats"), k.get("people"), k.get("queue"), k.get("wait_min"),
-                     obj["received_at"]))
+                     obj["received_at"], json.dumps(zones) if zones else None, sm.get("unknown_seats")))
+        con.executemany("INSERT OR IGNORE INTO table_events VALUES (?,?,?,?,?)",
+                        [(obj["t"],) + c for c in table_changes(prev, obj)])
     return jsonify(ok=True)
 
 
@@ -193,10 +254,13 @@ def latest():
         capacity = CAPACITY
         free_ratio = max(0.0, (capacity - (people or 0)) / capacity)
         basis = "people"
+    zones = None
+    if fresh_state and st.get("zones"):
+        zones = [zone_status(z, v) for z, v in sorted(st["zones"].items())]
     return jsonify(status="stale" if age > STALE_SEC else "ok", open=is_open(now),
                    ts=r["ts"], people=people, total=people,
                    cams={k: v for k, v in cams.items() if k not in KIOSK_CAMS},
-                   kiosk=kiosk, tables=(st.get("tables") if fresh_state else None), summary=summ,
+                   kiosk=kiosk, tables=(st.get("tables") if fresh_state else None), summary=summ, zones=zones,
                    level=level_from_ratio(free_ratio), free_pct=round(free_ratio * 100), basis=basis,
                    used_seats=used_seats, free_seat_range=seat_range,
                    capacity=capacity, age_sec=int(age))
@@ -219,52 +283,116 @@ def today():
     return jsonify(cached("today", build))
 
 
-@app.get("/api/slots")
-def slots():
-    """운영 시간 전체를 15분 칸으로 나눠 오늘 실제값과 지난 평일 평균·최소·최대를 돌려준다."""
+def slot_series():
+    """운영 시간 전체를 15분 칸으로 나눠, 전체(좌석 카메라 합)와 카메라(구역)마다 오늘 실제값과
+    지난 평일 평균·최소·최대를 한 번에 계산한다. 평소 값은 날짜별 칸 평균을 다시 평균 (기록이 많은 날이 더 세지 않게).
+    꺼져 있던 카메라는 그 칸에서 빠진다. 전체의 평소 값은 좌석 카메라가 모두 켜져 있던 기록만 써서
+    카메라 하나가 꺼진 날 때문에 평소가 낮아지지 않게 한다."""
     def build():
         now = datetime.datetime.now()
-        name, start, end = "하루", OPEN_START, OPEN_END
         today_str = now.date().isoformat()
         labels = []
-        t = datetime.datetime.strptime(start, "%H:%M")
-        e = datetime.datetime.strptime(end, "%H:%M")
+        t = datetime.datetime.strptime(OPEN_START, "%H:%M")
+        e = datetime.datetime.strptime(OPEN_END, "%H:%M")
         while t < e:
             labels.append(t.strftime("%H:%M"))
             t += datetime.timedelta(minutes=SLOT_MIN)
         with db() as con:
             rows = con.execute(
                 "SELECT ts, cams FROM counts WHERE substr(ts, 12, 5) >= ? AND substr(ts, 12, 5) < ?",
-                (start, end)).fetchall()
-        actual, past, days = {}, {}, set()
+                (OPEN_START, OPEN_END)).fetchall()
+        actual, past, days, weekday_ok = {}, {}, {}, {}
         for r in rows:
-            v = seat_total(json.loads(r["cams"]))
-            if v is None:
-                continue
+            cams = json.loads(r["cams"])
             d, s = r["ts"][:10], slot_of(r["ts"][11:16])
+            vals = {k: v for k, v in cams.items() if v is not None}
+            seat = [v for k, v in cams.items() if k not in KIOSK_CAMS]
             if d == today_str:
-                actual.setdefault(s, []).append(v)
+                if seat_total(cams) is not None:
+                    vals["all"] = seat_total(cams)
+                for k, v in vals.items():
+                    actual.setdefault(k, {}).setdefault(s, []).append(v)
                 continue
-            try:
-                wd = datetime.date.fromisoformat(d).weekday()
-            except ValueError:
+            if d not in weekday_ok:
+                try:
+                    weekday_ok[d] = datetime.date.fromisoformat(d).weekday() in OPEN_DAYS
+                except ValueError:
+                    weekday_ok[d] = False
+            if not weekday_ok[d]:
                 continue
-            if wd in OPEN_DAYS:
-                past.setdefault(s, {}).setdefault(d, []).append(v)
-                days.add(d)
+            if seat and all(v is not None for v in seat):
+                vals["all"] = sum(seat)
+            for k, v in vals.items():
+                past.setdefault(k, {}).setdefault(s, {}).setdefault(d, []).append(v)
+                days.setdefault(k, set()).add(d)
 
         def avg(xs):
             return round(sum(xs) / len(xs), 1) if xs else None
 
-        out = []
-        for s in labels:
-            per_day = [avg(v) for v in past.get(s, {}).values()]
-            out.append({"t": s, "actual": avg(actual.get(s, [])), "forecast": avg(per_day),
-                        "lo": (round(min(per_day), 1) if per_day else None),
-                        "hi": (round(max(per_day), 1) if per_day else None)})
-        return {"window": name, "now_slot": slot_of(now.strftime("%H:%M")), "capacity": CAPACITY,
-                "days": len(days), "day_list": sorted(days), "slots": out}
-    return jsonify(cached("slots", build))
+        series = {}
+        for k in set(past) | set(actual):
+            out = []
+            for s in labels:
+                per_day = [avg(v) for v in past.get(k, {}).get(s, {}).values()]
+                out.append({"t": s, "actual": avg(actual.get(k, {}).get(s, [])), "forecast": avg(per_day),
+                            "lo": (round(min(per_day), 1) if per_day else None),
+                            "hi": (round(max(per_day), 1) if per_day else None)})
+            series[k] = {"days": len(days.get(k, ())), "day_list": sorted(days.get(k, ())), "slots": out}
+        return {"now_slot": slot_of(now.strftime("%H:%M")), "series": series}
+    return cached("slot_series", build)
+
+
+def zone_names(series):
+    return sorted(k for k in series if k.startswith("cam"))
+
+
+@app.get("/api/slots")
+def slots():
+    """15분 칸별 오늘 실제값과 평소 값. ?zone=cam2 처럼 구역(카메라) 하나만 볼 수 있음 (없으면 전체)."""
+    data = slot_series()
+    zone = request.args.get("zone") or "all"
+    if zone not in data["series"]:
+        zone = "all"
+    s = data["series"].get(zone) or {"days": 0, "day_list": [], "slots": []}
+    cap = CAPACITY if zone == "all" else zone_seats.get(zone)
+    return jsonify(window="하루", zone=zone, label=("전체" if zone == "all" else zone_label(zone)),
+                   now_slot=data["now_slot"], capacity=cap, days=s["days"], day_list=s["day_list"],
+                   slots=s["slots"], zones=zone_names(data["series"]))
+
+
+def busy_span(slots, peak):
+    """가장 붐비는 칸 앞뒤로 평소 값이 그 80% 이상인 칸이 이어지는 구간."""
+    i = next(n for n, x in enumerate(slots) if x is peak)
+    lo = hi = i
+    cut = peak["forecast"] * 0.8
+    while lo > 0 and (slots[lo - 1]["forecast"] or 0) >= cut:
+        lo -= 1
+    while hi < len(slots) - 1 and (slots[hi + 1]["forecast"] or 0) >= cut:
+        hi += 1
+    return slots[lo]["t"], slots[hi]["t"]
+
+
+@app.get("/api/zones")
+def zones_forecast():
+    """구역(카메라)마다 평소 가장 붐비는 때: 시각, 인원, 좌석 대비 비율, 붐비는 구간, 지금 칸의 평소 값."""
+    data = slot_series()
+    now_slot = data["now_slot"]
+    out = []
+    for z in zone_names(data["series"]):
+        s = data["series"][z]
+        fc = [x for x in s["slots"] if x["forecast"] is not None]
+        if not fc:
+            continue
+        peak = max(fc, key=lambda x: x["forecast"])
+        start, end = busy_span(s["slots"], peak)
+        seats = None if z in KIOSK_CAMS else zone_seats.get(z)
+        now = next((x for x in s["slots"] if x["t"] == now_slot), None)
+        out.append({"zone": z, "label": zone_label(z), "kiosk": z in KIOSK_CAMS, "seats": seats, "days": s["days"],
+                    "peak": peak["t"], "peak_people": peak["forecast"],
+                    "peak_pct": round(peak["forecast"] / seats * 100) if seats else None,
+                    "busy_from": start, "busy_to": end,
+                    "now_forecast": now["forecast"] if now else None, "now_actual": now["actual"] if now else None})
+    return jsonify(now_slot=now_slot, zones=out)
 
 
 @app.get("/api/history")
@@ -401,6 +529,31 @@ def _daily_rows():
     return out
 
 
+def table_usage(day):
+    """그날 테이블별 이용 횟수와 이용 시간(분). 이용 한 번 = 사용 중이 된 때부터 빈 자리가 될 때까지
+    (빈 자리로 바뀌기까지 기다린 TBL_EMPTY초는 뺌). 자리 비움에서 다시 사용 중이 되면 같은 이용으로 본다."""
+    with db() as con:
+        rows = con.execute("SELECT ts, tid, st, zone FROM table_events WHERE ts >= ? AND ts < ? ORDER BY ts",
+                           (day, day + "~")).fetchall()
+    sec = lambda ts: datetime.datetime.fromisoformat(ts).timestamp()
+    lunch = (sec(day + " 11:00:00"), sec(day + " 14:00:00"))
+    started, out = {}, {}
+    for r in rows:
+        u = out.setdefault(r["tid"], {"tid": r["tid"], "zone": r["zone"], "uses": 0, "minutes": 0.0, "lunch": 0.0, "now": False})
+        u["zone"] = r["zone"] or u["zone"]
+        if r["st"] == "occupied" and r["tid"] not in started:
+            started[r["tid"]] = sec(r["ts"])
+        elif r["st"] == "empty" and r["tid"] in started:
+            a, b = started.pop(r["tid"]), sec(r["ts"]) - TBL_EMPTY
+            u["uses"] += 1
+            u["minutes"] += max(0.0, b - a) / 60
+            u["lunch"] += max(0.0, min(b, lunch[1]) - max(a, lunch[0])) / 60
+    for tid in started:
+        out[tid]["now"] = True                         # 아직 이용 중 (오늘)
+    key = lambda u: (u["zone"] or "~", u["tid"][:1], int("".join(c for c in u["tid"] if c.isdigit()) or 0))
+    return sorted(out.values(), key=key)
+
+
 def _csv(rows, header, keys, name):
     import csv, io
     buf = io.StringIO()
@@ -506,6 +659,17 @@ def stats():
         f'<td class="n"><b>{pct(r["ok_pct"])}</b></td><td class="n">{r["via_return"]}</td><td class="n">{r["comments"]}</td></tr>'
         for r in daily) or '<tr><td colspan="11" class="empty">아직 기록이 없어요</td></tr>'
     sel_label = f'{sel[5:].replace("-", "/")}({"월화수목금토일"[datetime.date.fromisoformat(sel).weekday()]})'
+    usage = table_usage(sel)
+    done = [u for u in usage if u["uses"]]
+    avg_min = sum(u["minutes"] for u in done) / sum(u["uses"] for u in done) if done else None
+    usage_rows = "".join(
+        f'<tr><td><b>{esc(u["tid"])}</b></td><td>{esc(zone_label(u["zone"]) if u["zone"] else "—")}</td>'
+        f'<td class="n"><b>{u["uses"]}</b>{" +이용 중" if u["now"] else ""}</td>'
+        f'<td class="n">{round(u["minutes"] / u["uses"]) if u["uses"] else "—"}분</td><td class="n">{round(u["minutes"])}분</td>'
+        f'<td class="n">{round(u["lunch"] / 180 * 100)}%</td></tr>' for u in usage
+    ) or '<tr><td colspan="6" class="empty">이 날 테이블 기록이 없어요</td></tr>'
+    usage_note = (f'이용 {sum(u["uses"] for u in done)}번 · 한 번 평균 {round(avg_min)}분'
+                  + (f' · 가장 많이 쓰인 테이블 {max(done, key=lambda u: u["uses"])["tid"]}' if done else "")) if done else "아직 끝난 이용이 없어요"
 
     def delta(a, b):
         if b is None:
@@ -610,6 +774,12 @@ ul.cm p{{margin:4px 0 0}} .empty{{color:var(--faint);margin:0}}
     <h2 style="margin-top:16px">어디서 들어왔나 <span>누적 방문자</span></h2>{hbars([(r["r"], r["u"]) for r in refs])}
   </div>
 </section>
+
+<section class="row1 card"><h2>{sel_label} 테이블별 이용 <span>{usage_note}</span></h2>
+<div class="tbl"><table>
+<thead><tr><th>테이블</th><th>구역</th><th>이용 횟수</th><th>평균 이용 시간</th><th>합계</th><th>점심(11~14시) 사용 비율</th></tr></thead>
+<tbody>{usage_rows}</tbody></table></div>
+<p class="note">이용 한 번 = 사용 중이 된 때부터 빈 자리가 될 때까지예요. 잠깐 자리를 비웠다가 돌아오면 같은 이용으로 셉니다. 빈 자리로 바뀌기까지 기다리는 {TBL_EMPTY // 60}분은 뺐어요.</p></section>
 
 <div class="how">우리 기기의 방문·의견을 빼려면 각 기기에서 한 번만 <code>https://babmeok.tail976ee0.ts.net/?team=1</code> 을 열어 두세요. 그 기기의 방문은 세지 않고, 의견은 "팀 테스트"로 따로 저장돼요.</div>
 </div>
