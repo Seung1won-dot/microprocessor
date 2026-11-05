@@ -1,0 +1,18 @@
+# 비밀 값과 운영 데이터는 올리지 않음
+token.txt
+.push_token
+*.db
+*.db-*
+state_latest.json
+zone_seats.json
+people_log*.csv
+tables_log*.jsonl
+tables_state.json
+shadow/
+logs/
+venv/
+__pycache__/
+*.bak*
+*.onnx
+*_ncnn_model/
+.DS_Store
