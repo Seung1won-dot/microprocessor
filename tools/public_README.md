@@ -94,6 +94,26 @@ flowchart LR
 | 네트워크 | Tailscale, Funnel | 포트 개방 없이 기기 간 연결, 학생용 화면만 HTTPS 공개 |
 | 웹 | HTML / CSS / JavaScript | 그래프 라이브러리 없이 직접 그림, 한 파일 |
 
+## 필요한 제품
+
+카메라 4대 · 좌석 약 160석 식당 기준입니다. 카메라 · 케이스 · 연장 케이블 · 멀티탭 · 몰딩은 2026년 가을 실제 구매가이고, 나머지는 시중가를 대략 적은 값입니다.
+
+| 품목 | 수량 | 대략 가격 | 쓰임 · 고른 이유 |
+|---|---|---|---|
+| IP 카메라 TP-Link Tapo C200 | 4 | 대당 약 3.8만 원 | RTSP 지원, 1080p. 2.4GHz 전용이라 핫스팟을 2.4GHz로 둠 |
+| Raspberry Pi 5 (8GB) | 1 | 약 14~16만 원 | 현장에서 카메라 4대 추론 (YOLO11n, NCNN) |
+| 라즈베리파이 5 알루미늄 방열 케이스 | 1 | 약 3.3만 원 | 계속 추론해도 약 60℃, 스로틀링 없음 |
+| USB-PD 전원 어댑터 (공식 27W 권장) | 1 | 약 1~2만 원 | 3A 어댑터면 `usb_max_current_enable=1` 필요 |
+| 부팅 저장장치 (USB 3.0 메모리 또는 microSD, 32GB 이상) | 1 | 약 1만 원 | OS와 기록 저장 |
+| USB 무선랜 동글 (Realtek RTL8822BU, 듀얼밴드) | 1 | 약 1~2만 원 | 인터넷 전용. 내장 Wi-Fi는 카메라 핫스팟 전용 |
+| USB 연장 케이블 | 1 | 약 2.3만 원 | 동글을 본체에서 떨어뜨려 간섭과 수신 개선 |
+| 멀티탭 · 케이블 몰딩 | 각 1 | 약 2.5만 원 · 약 2만 원 | 카메라·라즈베리파이 전원, 벽면 배선 정리 |
+| 서버 (항상 켜 둘 컴퓨터) | 1 | 보유 장비 | 우리는 Mac mini 사용. Python이 도는 어떤 컴퓨터든 가능 |
+
+소프트웨어는 모두 무료입니다: Raspberry Pi OS, Python, OpenCV, NCNN, Ultralytics(모델 변환), Flask, SQLite, Tailscale(개인 무료 요금제).
+
+설치 순서와 설정 파일은 **[docs/설치_가이드.md](docs/설치_가이드.md)** 에 있습니다.
+
 ## 정확도
 
 점심 피크 5분 동안 카메라 4대 화면 400장 중 48장을 직접 라벨링해 비교했습니다 (사람 719명, 테이블 575칸).
@@ -113,7 +133,8 @@ flowchart LR
 │   ├── push_counts.py         기록을 서버로 5초마다 전송
 │   ├── compare_shadow.py      YOLO11n과 YOLO26n 비교 기록 요약
 │   ├── tables.json            테이블 영역 (관리 화면에서 저장한 값)
-│   └── zones.json             카메라별 집계 구역
+│   ├── zones.json             카메라별 집계 구역
+│   └── systemd/               부팅 시 자동 실행 서비스 파일
 ├── cafeteria-server/          서버와 학생용 웹
 │   ├── server.py              데이터 받기·저장, 혼잡 판단, 평소 값·구역별 예측, 통계 (API)
 │   ├── index.html             학생용 혼잡도 화면 (한 파일)
@@ -122,7 +143,10 @@ flowchart LR
 │   ├── bench_ncnn.py          NCNN과 OpenCV DNN 속도 비교
 │   ├── backup_pi.sh           라즈베리파이 기록 백업 (rsync)
 │   └── launchd/               서버·백업 자동 실행 설정 (macOS)
-└── docs/                      혼잡도 계산 방법과 바뀐 과정
+└── docs/
+    ├── 설치_가이드.md          라즈베리파이·네트워크·카메라·모델·서버 설정 순서
+    ├── 혼잡도-계산.md          빈 좌석과 혼잡 단계를 구하는 식
+    └── 혼잡도_판단_방식.md     혼잡 판단 방식이 바뀐 과정
 ```
 
 ## 직접 돌려 보기
@@ -135,10 +159,23 @@ flowchart LR
 2. **서버** — `cafeteria-server/`에 `token.txt`(라즈베리파이 `~/.push_token`과 같은 값)를 두고, `server.py`의 `ALLOWED_INGEST`에 라즈베리파이 주소를 넣은 뒤 `gunicorn -w 1 --threads 4 -b 0.0.0.0:8000 server:app`으로 실행합니다.
 3. **전송** — 라즈베리파이 `push_counts.py`의 `SERVER`에 서버 주소를 넣고 실행합니다.
 
-카메라 주소, 계정, 토큰 같은 값은 저장소에 넣지 않고 `<cam1 IP>` 같은 자리 표시로 비워 두었습니다.
+카메라 주소, 계정, 토큰 같은 값은 저장소에 넣지 않고 `<cam1 IP>` 같은 자리 표시로 비워 두었습니다. 처음부터 설치하는 순서는 [docs/설치_가이드.md](docs/설치_가이드.md)에 있습니다.
 
 ## 한계
 
 - 테이블 판정은 "영역 안에 사람이 있는가"로만 정합니다. 줄을 서거나 지나가는 사람이 영역을 스치면 잠깐 사용 중으로 보일 수 있습니다.
 - 위에서 내려다보는 각도라 가려진 사람을 놓치기도 하고, 카메라 밖 좌석은 집계하지 않습니다.
 - "평소" 값은 지난 평일 같은 시간대 평균이라, 시험 기간이나 행사처럼 평소와 다른 날은 맞지 않습니다.
+
+## 참고한 코드와 문서
+
+| 자료 | 쓴 곳 |
+|---|---|
+| [Ultralytics YOLO11](https://docs.ultralytics.com/models/yolo11/) · [YOLO26](https://docs.ultralytics.com/models/yolo26/) | 사람 검출 모델 (COCO 사전학습 그대로 사용, 추가 학습 없음) |
+| [Ultralytics 모델 내보내기 (NCNN, ONNX)](https://docs.ultralytics.com/modes/export/) | 라즈베리파이용 모델 변환 |
+| [Tencent NCNN](https://github.com/Tencent/ncnn) · [Python 바인딩](https://pypi.org/project/ncnn/) | ARM CPU 추론 엔진 |
+| [OpenCV DNN](https://docs.opencv.org/4.x/d2/d58/tutorial_table_of_content_dnn.html) | NCNN이 없을 때 대체 추론, NMS, 다각형 판정 (`pointPolygonTest`) |
+| [NetworkManager nmcli](https://networkmanager.dev/docs/api/latest/nmcli.html) | 카메라 핫스팟, 카메라 IP 고정 (dnsmasq) |
+| [Tailscale](https://tailscale.com/kb) · [Funnel](https://tailscale.com/kb/1223/funnel) | 기기 간 VPN, 학생용 화면 HTTPS 공개 |
+| [Flask](https://flask.palletsprojects.com/) · [gunicorn](https://gunicorn.org/) · [SQLite WAL](https://www.sqlite.org/wal.html) | 서버와 저장 |
+| [Pretendard](https://github.com/orioncactus/pretendard) | 웹 글꼴 |

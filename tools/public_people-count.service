@@ -1,0 +1,15 @@
+[Unit]
+Description=People count server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /home/pi/people_count.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=Push people counts to server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi
+ExecStart=/usr/bin/python3 /home/pi/push_counts.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

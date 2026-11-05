@@ -30,6 +30,9 @@ FILES = {  # 원본 경로 -> 공개본 경로
     "혼잡도-계산.md": "docs/혼잡도-계산.md",
     "tools/public_README.md": "README.md",
     "tools/public_gitignore": ".gitignore",
+    "tools/public_setup.md": "docs/설치_가이드.md",
+    "tools/public_people-count.service": "pi/systemd/people-count.service",
+    "tools/public_push-counts.service": "pi/systemd/push-counts.service",
 }
 BINARY = {"tools/public_screenshot.png": "docs/screenshot.png"}
 
