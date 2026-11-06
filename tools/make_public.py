@@ -31,10 +31,14 @@ FILES = {  # 원본 경로 -> 공개본 경로
     "tools/public_README.md": "README.md",
     "tools/public_gitignore": ".gitignore",
     "tools/public_setup.md": "docs/설치_가이드.md",
+    "cafeteria-server/static/manifest.webmanifest": "cafeteria-server/static/manifest.webmanifest",
+    "cafeteria-server/static/icon.svg": "cafeteria-server/static/icon.svg",
     "tools/public_people-count.service": "pi/systemd/people-count.service",
     "tools/public_push-counts.service": "pi/systemd/push-counts.service",
 }
-BINARY = {"tools/public_screenshot.png": "docs/screenshot.png"}
+BINARY = {"tools/public_screenshot.png": "docs/screenshot.png",
+          **{f"cafeteria-server/static/icon-{n}.png": f"cafeteria-server/static/icon-{n}.png" for n in (32, 180, 192, 512)}}
+# og.png(공유 이미지)는 식당 이름이 들어 있어 공개본에서 뺌
 
 # 순서가 중요하다 (긴 것 먼저)
 REPLACE = [

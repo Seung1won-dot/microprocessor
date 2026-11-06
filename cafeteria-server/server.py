@@ -103,8 +103,11 @@ def level_from_ratio(free_ratio):
     return "여유" if free_ratio >= 0.3 else "보통" if free_ratio >= 0.1 else "혼잡"
 
 
+ZONE_NAMES = {"cam3": "왼쪽 구역", "cam2": "가운데 구역", "cam1": "오른쪽 구역"}   # index.html의 ZONES와 같게
+
+
 def zone_label(z):
-    return "키오스크 줄" if z in KIOSK_CAMS else "구역 " + z.replace("cam", "")
+    return "키오스크 줄" if z in KIOSK_CAMS else ZONE_NAMES.get(z, "구역 " + z.replace("cam", ""))
 
 
 def zone_status(z, v):
@@ -815,6 +818,12 @@ def set_layout():
 def layout_editor():
     with open(os.path.join(BASE, "layout.html"), encoding="utf-8") as f:
         return Response(f.read(), mimetype="text/html")
+
+
+@app.get("/favicon.ico")
+def favicon():
+    # 브라우저가 기본으로 찾는 주소 (아이콘·홈 화면 파일은 static/ 폴더, Flask가 /static/으로 제공)
+    return app.send_static_file("icon-32.png")
 
 
 @app.get("/")
