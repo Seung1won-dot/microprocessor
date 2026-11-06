@@ -2,11 +2,10 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>밥먹을래말래 · 학생회관 1층 식당</title>
 <meta name="description" content="지금 가면 앉을 수 있을까? 학생회관 1층 식당의 혼잡도와 빈 자리를 실시간으로 보여줘요.">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" id="themeColor" content="#ffffff">
 <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
 <link rel="icon" href="/static/icon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/static/icon-180.png">
@@ -25,7 +24,11 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<script>try{if(new URLSearchParams(location.search).get("dark")==="1"||localStorage.getItem("theme")==="dark")document.documentElement.dataset.dark="1";}catch(e){}</script>
+<script>
+// 밝은·어두운 화면: 직접 고른 값이 있으면 그것, 없으면 휴대폰 설정을 따라감
+try{const t=localStorage.getItem("theme"),q=new URLSearchParams(location.search).get("dark");
+if(q==="1"||t==="dark"||(!t&&q!=="0"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.dataset.dark="1";}catch(e){}
+</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 /* 디자인 기준: 앱 화면 규칙 (평평한 면, 색은 데이터·상태에만, 글자 크기 12/14/16/24/32, 4px 단위 간격) */
@@ -66,7 +69,7 @@ body{margin:0;background:var(--ground);color:var(--text);font-family:Pretendard,
 .topbar .in{max-width:1248px;height:100%;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .mark{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:800;letter-spacing:-.02em;color:var(--text);text-decoration:none;white-space:nowrap;min-width:0}
 .mark svg{color:var(--data);flex:none}
-.mark span{font-weight:400;color:var(--muted);font-size:14px;margin-left:6px;letter-spacing:0}
+
 .top-right{display:flex;align-items:center;gap:16px}
 .hours{color:var(--muted)}
 button.btn{height:32px;padding:0 12px;border:1px solid var(--control);background:var(--surface);border-radius:var(--r-ctl);font:inherit;font-weight:600;color:var(--text);
@@ -261,7 +264,7 @@ html[data-dark] .answer[data-level] .occ-track{background:rgba(255,255,255,.08)}
 .zcard .zc-free small{font-size:13px;font-weight:500;color:var(--muted);margin-left:2px}
 .zcard .zc-sub{font-size:12px;line-height:16px;color:var(--muted)}
 .zcard.off .zc-free{font-size:15px;line-height:30px;color:var(--faint)}
-.map-zoom{display:none;margin:0 0 8px auto}
+button.map-zoom{display:none;margin:0 0 8px auto}
 .map .zone text tspan.zf{font-weight:500;fill:var(--muted)}
 
 /* ── 지난 기록 ── */
@@ -345,7 +348,7 @@ footer svg{flex:none}
 @media (max-width:600px){
   .topbar .in,.wrap,footer{padding-left:16px;padding-right:16px}
   .wrap{padding-top:20px}
-  .mark span,.hours{display:none}
+  .hours{display:none}
   .mark{font-size:20px}
   .grid{gap:16px}
   .card{padding:20px 16px}
@@ -383,7 +386,7 @@ footer svg{flex:none}
   .zcard .zc-hint{display:none}
   .zcard .zc-sub{grid-column:1}
   .zcard .zc-free{grid-column:2;grid-row:1 / span 3;margin:0;text-align:right}
-  .map-zoom{display:flex}
+  button.map-zoom{display:flex}
   .map-hint{display:none}
   .map.zoom + .map-hint, .map-hint.on{display:block}
   .map:not(.zoom) .seat text,.map:not(.zoom) .fx text,.map:not(.zoom) .blind text,.map:not(.zoom) .zone text{display:none}
@@ -403,41 +406,168 @@ footer svg{flex:none}
   .title-row{flex-direction:column;align-items:flex-start}
   footer{flex-direction:column;gap:8px}
 }
+
+/* ══ 앱 화면 (11/6): 홈 화면에 추가해 쓰는 앱처럼 ══ */
+:root{--ground:#f2f4f6;--r-card:16px;--r-ctl:10px;--shadow:0 1px 2px rgba(17,20,24,.04),0 6px 24px rgba(17,20,24,.05);
+  --safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px);--safe-b:env(safe-area-inset-bottom,0px)}
+html[data-dark]{--ground:#0a0a0a;--shadow:none}
+html{-webkit-tap-highlight-color:transparent}
+body{padding-bottom:var(--safe-b)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* 머리글: 위에 붙어 있고 뒤가 살짝 비침 */
+.topbar{position:sticky;top:0;z-index:30;height:auto;padding-top:env(safe-area-inset-top,0px);border-bottom:1px solid var(--border);
+  background:color-mix(in srgb,var(--surface) 86%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(14px);backdrop-filter:saturate(1.6) blur(14px)}
+.topbar .in{height:56px;padding-left:calc(24px + var(--safe-l));padding-right:calc(24px + var(--safe-r))}
+.mark{gap:10px}
+.mark .logo,.sheet-head .logo{width:34px;height:34px;border-radius:10px;background:var(--data);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.mark .logo svg,.sheet-head .logo svg,.a2hs-ic svg{color:#fff}
+html[data-dark] .mark .logo svg,html[data-dark] .sheet-head .logo svg,html[data-dark] .a2hs-ic svg{color:#0b0b0b}
+.brand{display:flex;flex-direction:column;line-height:1.1}
+.brand b{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--text)}
+.brand small{font-size:12px;font-weight:500;color:var(--muted);margin-top:3px}
+.top-right{gap:8px}
+.live{display:inline-flex;align-items:center;font-size:13px;color:var(--muted);margin-right:4px;white-space:nowrap}
+.live .dot{margin-right:6px}
+.btn.icon{width:36px;height:36px;border-color:transparent;background:transparent;color:var(--muted)}
+@media (hover:hover) and (pointer:fine){.btn.icon:hover{background:var(--active)}}
+#themeBtn .sun{display:none}
+html[data-dark] #themeBtn .sun{display:inline}
+html[data-dark] #themeBtn .moon{display:none}
+.netbar{position:sticky;top:calc(57px + env(safe-area-inset-top,0px));z-index:29;padding:8px 16px;text-align:center;font-size:13px;font-weight:600;
+  background:var(--busy-bg);color:var(--busy);border-bottom:1px solid var(--border)}
+.wrap{padding-top:20px;padding-left:calc(24px + var(--safe-l));padding-right:calc(24px + var(--safe-r))}
+/* 카드: 테두리 대신 면과 그림자, 더 둥글게 */
+.card{border-color:transparent;box-shadow:var(--shadow)}
+html[data-dark] .card{border-color:var(--border)}
+.card-head h2,details.fold summary h2{font-size:17px;font-weight:700}
+.zcard{border-radius:12px}
+.map{border-radius:12px}
+.verdict .say strong{letter-spacing:-.03em}
+/* 불러오는 동안 회색 자리 표시 */
+.sk{color:transparent!important;border-radius:8px;background:linear-gradient(90deg,var(--active) 25%,var(--raised) 50%,var(--active) 75%);background-size:200% 100%;
+  animation:sk 1.3s ease-in-out infinite;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+@keyframes sk{from{background-position:150% 0}to{background-position:-50% 0}}
+/* 숫자가 바뀔 때 살짝 올라오며 바뀜 */
+.pop{animation:pop 280ms var(--ease-out)}
+@keyframes pop{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:none}}
+/* 숫자 3칸 */
+.kpi b{font-size:26px;line-height:34px;font-weight:700;letter-spacing:-.02em}
+/* 구역별 평소 붐비는 때: 시간 막대 */
+.zpeaks li{grid-template-columns:92px minmax(0,1fr) auto;min-height:56px}
+.ztl{position:relative;min-width:0}
+.ztl,.ztrack,.zaxis .ticks{display:block}
+.ztrack{position:relative;height:10px;border-radius:999px;background:var(--active)}
+.zbusy{position:absolute;top:0;bottom:0;border-radius:999px;background:var(--data)}
+.zbusy.여유{background:var(--ok-fill)}.zbusy.보통{background:var(--mid-fill)}.zbusy.혼잡{background:var(--busy-fill)}
+.zpeak{position:absolute;top:-3px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--surface);border:3px solid currentColor}
+.ztxt{display:block;margin-top:6px;font-size:12px;line-height:16px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ztxt b{color:var(--text);font-weight:600}
+.zaxis{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:12px;padding:10px 0 2px;font-size:11px;color:var(--faint)}
+.zaxis .ticks{position:relative;height:14px}
+.zaxis .ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.zaxis .pad{width:40px}
+/* 맨 아래 개인정보 한 줄 */
+footer{justify-content:center}
+.foot-privacy{display:inline-flex;align-items:center;gap:6px;border:0;background:none;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;padding:8px}
+.foot-privacy svg{color:var(--ok)}
+/* 아래에서 올라오는 시트 (정보 · 홈 화면 추가) */
+.sheet-wrap{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.sheet-bg{position:absolute;inset:0;background:rgba(10,12,16,.45);animation:fade 200ms ease}
+.sheet{position:relative;width:min(520px,100%);max-height:88vh;overflow:auto;background:var(--surface);color:var(--text);border-radius:20px 20px 0 0;
+  padding:10px 20px calc(20px + var(--safe-b));box-shadow:0 -8px 32px rgba(0,0,0,.18);animation:up 260ms var(--ease-out)}
+@media (min-width:601px){.sheet-wrap{align-items:center}.sheet{border-radius:20px;padding-bottom:20px}}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+@keyframes fade{from{opacity:0}}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--control);margin:0 auto 14px}
+.sheet-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.sheet-head h2{margin:0;font-size:18px;line-height:24px}
+.sheet-head small{color:var(--muted);font-size:13px}
+.sheet > p{margin:0 0 14px;color:var(--muted);word-break:keep-all}
+.sheet .privacy{display:flex;gap:10px;padding:14px;border-radius:12px;background:var(--ok-bg);margin-bottom:14px}
+.sheet .privacy svg{color:var(--ok);flex:none;margin-top:2px}
+.sheet .privacy b{display:block;margin-bottom:2px}
+.sheet .privacy p{margin:0;color:var(--muted);font-size:13px;line-height:19px;word-break:keep-all}
+.sheet .kv{margin:0 0 16px}
+.sheet-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.sheet .btn{height:44px;justify-content:center;width:100%}
+.steps{margin:4px 0 16px;padding:0;list-style:none;counter-reset:st}
+.steps li{position:relative;padding:10px 0 10px 40px;border-bottom:1px solid var(--rule);word-break:keep-all;counter-increment:st}
+.steps li:last-child{border-bottom:0}
+.steps li::before{content:counter(st);position:absolute;left:0;top:9px;width:26px;height:26px;border-radius:50%;background:var(--data-tint);color:var(--data);
+  font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
+.steps .ic{display:inline-flex;vertical-align:-4px;margin:0 2px;color:var(--data)}
+.steps .note{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
+/* 홈 화면 추가 띠 */
+.a2hs{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:12px 12px 12px 14px;border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow)}
+html[data-dark] .a2hs{border:1px solid var(--border)}
+.a2hs-ic{width:36px;height:36px;border-radius:10px;background:var(--data);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.a2hs-t{display:flex;flex-direction:column;min-width:0;flex:1}
+.a2hs-t b{font-weight:700}
+.a2hs-t small{font-size:12px;color:var(--muted)}
+.a2hs .btn{flex:none}
+.a2hs-x{width:32px;height:32px;border:0;background:none;color:var(--faint);font-size:20px;cursor:pointer;border-radius:8px;flex:none}
+.rp{bottom:calc(16px + var(--safe-b))}
+@media (prefers-reduced-motion:reduce){.sk,.pop,.sheet,.sheet-bg{animation:none}}
+@media (max-width:600px){
+  .topbar .in{padding-left:calc(16px + var(--safe-l));padding-right:calc(10px + var(--safe-r))}
+  .wrap{padding:12px calc(12px + var(--safe-l)) 24px calc(12px + var(--safe-r))}
+  .grid{gap:12px}
+  .card{padding:20px 16px}
+  .card.answer{padding:0}
+  .live{font-size:12px;margin-right:0}
+  .say strong{font-size:27px;line-height:35px}
+  /* 숫자 3칸: 휴대폰에서도 가로 한 줄 */
+  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kpi{display:block;padding:14px 12px 16px;text-align:left}
+  .kpi+.kpi{border-top:0;border-left:1px solid var(--border)}
+  .kpi small{font-size:12px}
+  .kpi b{font-size:21px;line-height:28px;margin:2px 0 0;text-align:left}
+  .kpi p{font-size:11px;line-height:15px}
+  button.btn{height:40px}
+  .btn.icon{width:40px;height:40px}
+  .zone-tabs .btn{height:36px;padding:0 14px}
+  .fb-btns .btn,.rp-btns .btn{height:44px}
+  .zpeaks li,.zaxis{grid-template-columns:72px minmax(0,1fr) auto;gap:10px}
+  .zaxis .pad{width:36px}
+  .zpct{display:none}
+  .a2hs{margin-bottom:12px}
+}
 </style>
 </head>
 <body>
-<div class="topbar"><div class="in">
-  <a class="mark" href="/" aria-label="밥먹을래말래 홈">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg>
-    밥먹을래말래<span>캠퍼스 식당 실시간 혼잡도</span>
+<header class="topbar"><div class="in">
+  <a class="mark" href="/" aria-label="밥먹을래말래 처음으로">
+    <span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg></span>
+    <span class="brand"><b>밥먹을래말래</b><small>학생회관 1층 식당</small></span>
   </a>
   <div class="top-right">
     <span class="hours" id="hours">평일 08:00–19:30 운영</span>
-    <button class="btn icon" id="tourBtn" type="button" aria-label="사용법 보기" title="사용법">?</button>
-    <button class="btn theme" id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면 전환">
-      <svg class="moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
-      <svg class="sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      <span class="lbl-dark">다크 모드</span><span class="lbl-light">라이트 모드</span>
+    <span id="liveText" class="live tnum" title="마지막으로 받은 시각"><i class="dot off" id="dot"></i><span>…</span></span>
+    <button class="btn icon" id="tourBtn" type="button" aria-label="서비스 정보와 사용법" title="정보">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+    </button>
+    <button class="btn icon" id="themeBtn" type="button" aria-label="어두운 화면으로 전환" title="밝은·어두운 화면">
+      <svg class="moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+      <svg class="sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
     </button>
   </div>
-</div></div>
+</div></header>
+<div class="netbar" id="netBar" role="status" hidden>연결이 끊겼어요 · 다시 연결하는 중</div>
 
 <div class="wrap">
-  <div class="title-row">
-    <div>
-      <h1>학생회관 1층 식당</h1>
-      <p>카메라가 센 인원과 자리 상태로 혼잡도를 보여줘요</p>
-    </div>
-    <div class="fresh">
-      <span id="liveText" class="tnum"><i class="dot off" id="dot"></i>불러오는 중</span>
-    </div>
+  <h1 class="sr">학생회관 1층 식당 실시간 혼잡도</h1>
+  <div class="a2hs" id="a2hs" hidden>
+    <span class="a2hs-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg></span>
+    <span class="a2hs-t"><b>홈 화면에 추가하기</b><small>앱처럼 한 번에 열 수 있어요</small></span>
+    <button class="btn primary" id="a2hsGo" type="button">추가하기</button>
+    <button class="a2hs-x" id="a2hsX" type="button" aria-label="안내 닫기">×</button>
   </div>
 
   <main class="grid">
     <section class="card answer full" id="answer" aria-live="polite">
       <div class="verdict">
-      <div class="say"><strong id="headline">불러오는 중…</strong><span class="pill" id="badge" hidden></span></div>
-      <p class="lead" id="sub">&nbsp;</p>
+      <div class="say"><strong id="headline" class="sk">지금 가도 앉을 수 있어요</strong><span class="pill" id="badge" hidden></span></div>
+      <p class="lead" id="sub"><span class="sk">자리가 조금씩 차고 있어요</span></p>
       <div class="trend" id="trend" hidden></div>
       <div class="meter" id="occ" hidden>
         <div class="occ-track">
@@ -449,9 +579,9 @@ footer svg{flex:none}
       </div>
       </div>
       <div class="kpis">
-        <div class="kpi"><small>빈 자리</small><b id="seatMain" class="tnum dash">—</b><p id="seatSub">&nbsp;</p></div>
-        <div class="kpi"><small>식당 예상 인원</small><b id="peopleMain" class="tnum dash">—</b><p>&nbsp;</p></div>
-        <div class="kpi"><small>주문 대기 (키오스크)</small><b id="kioskMain" class="tnum dash">—</b><p id="kioskSub">&nbsp;</p></div>
+        <div class="kpi"><small id="seatLabel">빈 테이블</small><b id="seatMain" class="tnum sk">00개</b><p id="seatSub">&nbsp;</p></div>
+        <div class="kpi"><small>식당 인원</small><b id="peopleMain" class="tnum sk">00명</b><p id="peopleSub">&nbsp;</p></div>
+        <div class="kpi"><small>주문 대기</small><b id="kioskMain" class="tnum sk">약 0분</b><p id="kioskSub">&nbsp;</p></div>
       </div>
       <div class="counters" id="counters" aria-label="배식대 영업 상태"></div>
     </section>
@@ -476,6 +606,7 @@ footer svg{flex:none}
       <p class="chart-empty" id="chartSub"></p>
       <div id="zpeakBox" hidden>
         <div class="zpeaks-head"><h3>구역별로 평소 가장 붐비는 때</h3><span id="zpeakMeta"></span></div>
+        <div class="zaxis tnum" id="zaxis" aria-hidden="true"></div>
         <ul class="zpeaks tnum" id="zpeaks"></ul>
       </div>
     </section>
@@ -507,21 +638,6 @@ footer svg{flex:none}
       </div>
     </section>
 
-    <section class="card full about" id="about">
-      <div class="privacy">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
-        <div>
-          <h2>카메라 영상은 저장하거나 전송하지 않아요</h2>
-          <p>영상은 식당 안 장치에서 사람 수를 세는 데만 쓰고 바로 버려요. 서버로는 사람 수와 자리 상태 같은 숫자만 보내요.</p>
-          <p>얼굴이나 개인을 알아보는 정보는 모으지 않아요.</p>
-        </div>
-      </div>
-      <div>
-        <h2>밥먹을래말래는</h2>
-        <p>지금 학생회관 1층 식당에 가면 바로 앉아서 밥을 먹을 수 있는지 알려주는 서비스예요. 카메라로 식당 안 인원과 빈 테이블을 세어, 가기 전에 "지금 가도 될지"를 판단할 수 있게 도와줘요.</p>
-        <p class="run tnum">종강 전까지 평일 08:00–19:30에 운영해요.</p>
-      </div>
-    </section>
   </main>
 </div>
 
@@ -550,8 +666,36 @@ footer svg{flex:none}
 </div>
 
 <footer>
-  <p>밥먹을래말래</p>
+  <button class="foot-privacy" id="footInfo" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>카메라 영상은 저장하거나 전송하지 않아요</button>
 </footer>
+
+<!-- 정보 시트 (? 버튼) -->
+<div class="sheet-wrap" id="info" hidden>
+  <div class="sheet-bg" data-close></div>
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <div class="sheet-head"><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg></span><div><h2 id="infoTitle">밥먹을래말래</h2><small>학생회관 1층 식당 실시간 혼잡도</small></div></div>
+    <p>식당에 가기 전에 지금 앉을 자리가 있는지 알려줘요. 카메라로 식당 안 인원과 빈 테이블을 세어 10초마다 새로 보여줘요.</p>
+    <div class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg><div><b>카메라 영상은 저장하거나 전송하지 않아요</b><p>영상은 식당 안 장치에서 사람 수를 세는 데만 쓰고 바로 버려요. 얼굴이나 개인을 알아보는 정보는 모으지 않아요.</p></div></div>
+    <dl class="kv tnum"><dt>운영</dt><dd>종강 전까지 평일 08:00–19:30</dd><dt>참고</dt><dd>주문 대기는 키오스크 앞 줄로 낸 추정값이에요.</dd></dl>
+    <div class="sheet-actions">
+      <button class="btn" id="infoA2hs" type="button">홈 화면에 추가하는 법</button>
+      <button class="btn" id="infoTour" type="button">사용법 다시 보기</button>
+    </div>
+    <button class="btn primary sheet-close" type="button" data-close>닫기</button>
+  </section>
+</div>
+
+<!-- 홈 화면 추가 안내 시트 -->
+<div class="sheet-wrap" id="a2hsSheet" hidden>
+  <div class="sheet-bg" data-close></div>
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="a2hsTitle">
+    <div class="grab" aria-hidden="true"></div>
+    <div class="sheet-head"><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg></span><div><h2 id="a2hsTitle">홈 화면에 추가하기</h2><small>다음부터 아이콘 한 번으로 열려요</small></div></div>
+    <ol class="steps" id="a2hsSteps"></ol>
+    <button class="btn primary sheet-close" type="button" data-close>알겠어요</button>
+  </section>
+</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -638,6 +782,8 @@ const LAYOUT = {
 };
 
 let cap = 120, latest = null, slotData = null, todayRows = [], compareOn = false, zoneSel = "all", zoneData = null;
+// 자리 현황에서 고른 구역: 항상 하나가 선택돼 있음 (들어올 때마다 왼쪽 구역부터). 그래프 구역(zoneSel)과는 따로
+let seatZone = ZONES[0].cam;
 
 const Q = new URLSearchParams(location.search);
 const DEMO = Q.has("demo");
@@ -778,12 +924,12 @@ function showTourStep(i){
   placeTour(); requestAnimationFrame(placeTour); setTimeout(placeTour, 300);
 }
 function startTour(){ closeReturn(false); $("tour").hidden = false; showTourStep(0); $("tourNext").focus(); }
-function endTour(){ $("tour").hidden = true; tourIdx = -1; store.set("tour_done", "1"); window.scrollTo({top: 0}); }
+function endTour(){ $("tour").hidden = true; tourIdx = -1; store.set("tour_done", "1"); window.scrollTo({top: 0}); maybeShowA2hsBar(); }
 $("tourNext").addEventListener("click", () => tourIdx < TOUR.length - 1 ? showTourStep(tourIdx + 1) : endTour());
 // 건너뛰어도 마지막 "다녀온 뒤 의견 눌러 주세요" 부탁은 한 번 보여 줌
 const skipTour = () => tourIdx < TOUR.length - 1 ? showTourStep(TOUR.length - 1) : endTour();
 $("tourSkip").addEventListener("click", skipTour);
-$("tourBtn").addEventListener("click", startTour);
+$("tourBtn").addEventListener("click", () => openSheet("info"));
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("tour").hidden) skipTour(); });
 addEventListener("resize", placeTour);
 addEventListener("scroll", placeTour, {passive: true});
@@ -806,7 +952,14 @@ const nowHM = () => DEMO ? (Q.get("at") || "12:05") : new Date().toTimeString().
 const live = () => latest && latest.open && latest.status === "ok" && latest.people != null;
 
 // 값이 없으면 회색 대시
-function setVal(id, text){ const e = $(id); if (text == null){ e.textContent = "—"; e.classList.add("dash"); } else { e.textContent = text; e.classList.remove("dash"); } }
+function setVal(id, text){
+  const e = $(id), v = text == null ? "—" : text, changed = e.textContent !== v && !e.classList.contains("sk");
+  e.classList.remove("sk");
+  e.textContent = v; e.classList.toggle("dash", text == null);
+  if (changed){ e.classList.remove("pop"); void e.offsetWidth; e.classList.add("pop"); }
+}
+// 처음 데이터를 받으면 회색 자리 표시를 걷어냄
+function doneLoading(){ $("headline").classList.remove("sk"); }   // 숫자 칸은 setVal이 처음 채울 때 걷어냄
 
 function setHero(h, s, lv){
   $("headline").textContent = h; $("sub").textContent = s;
@@ -822,7 +975,9 @@ function renderLatest(d){
   if (d.capacity) cap = d.capacity;
   const ok = d.status === "ok";
   $("dot").classList.toggle("off", !(ok && d.open));
-  $("liveText").lastChild.textContent = d.ts ? `${ok ? "실시간" : "마지막 기록"} · ${hm(d.ts)} 업데이트` : "아직 데이터 없음";
+  $("liveText").lastChild.textContent = d.ts ? (ok ? hm(d.ts) : `${hm(d.ts)} 기록`) : "기록 없음";
+  $("liveText").title = d.ts ? `${ok ? "실시간" : "마지막 기록"} · ${hm(d.ts)} 업데이트` : "아직 데이터 없음";
+  doneLoading(); $("netBar").hidden = true;
   $("hours").textContent = d.open == null ? "평일 08:00–19:30 운영" : d.open ? "운영 중 · 평일 08:00–19:30" : "운영 시간 아님 · 평일 08:00–19:30";
 
   if (!d.open) setHero("지금은 운영 시간이 아니에요", "평일 08:00–19:30에 운영해요.", null);
@@ -832,14 +987,17 @@ function renderLatest(d){
   const sm = d.summary;
   if (live()){
     if (sm && sm.total){
-      setVal("seatMain", `빈 테이블 ${sm.empty}개`);
-      $("seatSub").innerHTML = "&nbsp;";
+      $("seatLabel").textContent = "빈 테이블";
+      setVal("seatMain", `${sm.empty}개`);
+      $("seatSub").textContent = sm.free_seats != null ? `빈 좌석 약 ${sm.free_seats}석` : "\u00a0";
     } else {
+      $("seatLabel").textContent = "빈 자리";
       setVal("seatMain", `약 ${Math.max(0, cap - d.people)}석`);
-      $("seatSub").textContent = `좌석 ${cap}석에서 인원을 뺀 추정값`;
+      $("seatSub").textContent = `전체 ${cap}석 기준`;
     }
     $("seatMain").style.color = STATUS_TXT[d.level] || "";
     setVal("peopleMain", `${d.people}명`);
+    $("peopleSub").textContent = `전체 ${cap}석`;
     // 게이지: 혼잡 단계와 같은 기준 = 사용 좌석 max(점유 테이블 좌석, 인원) / 전체 좌석. 테이블 판정이 없으면 좌석 대비 인원
     $("occ").hidden = false;
     const f = $("occFill");
@@ -853,7 +1011,7 @@ function renderLatest(d){
     f.style.background = STATUS[d.level];
   } else {
     setVal("seatMain", null); $("seatSub").innerHTML = "&nbsp;"; $("seatMain").style.color = "";
-    setVal("peopleMain", null);
+    setVal("peopleMain", null); $("peopleSub").textContent = "\u00a0";
     $("occ").hidden = true;
   }
   const k = d.kiosk;
@@ -862,7 +1020,8 @@ function renderLatest(d){
     $("kioskSub").textContent = "지금은 알 수 없어요";
   } else if (d.open && ok && k && k.people != null){
     setVal("kioskMain", k.queue <= 0 ? "바로 주문" : `약 ${Math.max(1, Math.round(k.wait_min))}분`);
-    $("kioskSub").textContent = k.queue <= 0 ? `줄 없음 · 키오스크 앞 ${k.people}명` : `줄 ${k.queue}명 · 1분에 약 ${k.rate}명씩 줄어요`;
+    $("kioskSub").textContent = k.queue <= 0 ? "줄 없음" : `줄 ${k.queue}명`;
+    $("kioskSub").title = k.queue <= 0 ? `키오스크 앞 ${k.people}명` : `1분에 약 ${k.rate}명씩 줄어요`;
     $("kioskMain").style.color = kioskLevel(k.queue) === "혼잡" ? "var(--busy)" : "";
   } else {
     setVal("kioskMain", null); $("kioskMain").style.color = "";
@@ -886,8 +1045,8 @@ function renderMap(states, zones){
   (L.zones || []).forEach(z => {
     // 운영 중이면 구역 이름 옆에 그 구역의 빈 좌석 (카메라가 꺼진 구역은 "확인 불가")
     const zs = zones && zones.find(v => v.zone === z.cam);
-    const g = mk("g", {class: "zone" + (zs ? " live" : "") + (zoneSel === z.cam ? " sel" : "")});
-    g.addEventListener("click", () => selectZone(zoneSel === z.cam ? "all" : z.cam));
+    const g = mk("g", {class: "zone" + (zs ? " live" : "") + (seatZone === z.cam ? " sel" : "")});
+    g.addEventListener("click", () => selectSeatZone(z.cam));
     g.appendChild(mk("rect", {x: z.x, y: z.y, width: z.w, height: z.h, rx: 10}));
     const t = mk("text", {x: z.x + 12, y: z.y + 20}); t.textContent = z.label;
     if (zs){
@@ -953,7 +1112,7 @@ function renderZoneCards(zones){
     const off = !z.seats && z.unknown_seats;
     const b = document.createElement("button");
     b.type = "button"; b.className = "zcard" + (off ? " off" : "");
-    b.setAttribute("aria-pressed", zoneSel === cam);
+    b.setAttribute("aria-pressed", seatZone === cam);
     b.innerHTML = `<span class="zc-top"><span class="zc-name"></span>${off || !z.level ? "" : `<span class="pill ${z.level}">${z.level}</span>`}</span>`
       + `<span class="zc-hint"></span><span class="zc-free tnum"></span><span class="zc-sub tnum"></span>`;
     b.querySelector(".zc-name").textContent = name + " 구역";
@@ -964,7 +1123,7 @@ function renderZoneCards(zones){
       b.querySelector(".zc-free").innerHTML = `빈 자리 ${z.free_seats}<small>석</small>`;
       b.querySelector(".zc-sub").textContent = `빈 테이블 ${z.empty} · 사용 중 ${z.occupied}` + (z.away ? ` · 비움 ${z.away}` : "");
     }
-    b.addEventListener("click", () => selectZone(zoneSel === cam ? "all" : cam));
+    b.addEventListener("click", () => selectSeatZone(cam));
     box.appendChild(b);
   });
 }
@@ -977,8 +1136,13 @@ $("mapZoom").addEventListener("click", () => {
   $("mapHint").classList.toggle("on", on);
   scrollMapToZone();
 });
+function selectSeatZone(z){
+  if (z === seatZone) return;
+  seatZone = z;
+  renderSeats(latest); scrollMapToZone();
+}
 function scrollMapToZone(){
-  const box = $("map"), z = LAYOUT.zones.find(v => v.cam === zoneSel);
+  const box = $("map"), z = LAYOUT.zones.find(v => v.cam === seatZone);
   if (!box.classList.contains("zoom") || !z) return;
   const svg = box.querySelector("svg"); if (!svg) return;
   const k = svg.getBoundingClientRect().width / LAYOUT.w;
@@ -1038,9 +1202,7 @@ function renderSlots(s){
   const zoned = zoneSel !== "all";
   $("chartTitle").textContent = zoned ? `${zoneName(zoneSel)} · 오늘 시간대별 인원` : "오늘 시간대별 인원 · 15분 단위";
   renderZoneTabs(s.zones || []);
-  $("chartSub").textContent = (s.days > 0 ? `옅은 막대는 평소 이 시간 인원(지난 평일 ${s.days}일 평균)이에요. ` : "평소 값은 기록이 쌓이면 보여요. ")
-    + (zoned && s.capacity ? `${zoneName(zoneSel)}의 자리는 ${s.capacity}석이에요. ` : "")
-    + "막대에 마우스를 올리거나 누르면 그 시간의 인원을 볼 수 있어요.";
+  $("chartSub").textContent = s.days > 0 ? "" : "평소 값은 기록이 쌓이면 보여요.";
   hideTip();
   const n = s.slots.length;
   if (!n) return;
@@ -1151,7 +1313,7 @@ async function selectZone(z){
   zoneSel = z;
   store.set("zone", z);
   if (zoneData) renderZonePeaks(zoneData);
-  renderSeats(latest); scrollMapToZone();
+  if (zoneInfo(z)) selectSeatZone(z);          // 그래프에서 자리 구역을 고르면 자리 현황도 그 구역으로
   try { renderSlots(await getJSON("/api/slots?zone=" + encodeURIComponent(z))); } catch (e) {}
 }
 function renderZonePeaks(d){
@@ -1160,16 +1322,28 @@ function renderZonePeaks(d){
   const list = zoneOrder(raw.map(z => z.zone)).map(z => raw.find(v => v.zone === z));
   $("zpeakBox").hidden = !list.length;
   ul.innerHTML = "";
+  if (!list.length) return;
+  // 시간 막대 범위: 모든 구역의 붐비는 때를 담고 앞뒤로 30분 여유 (정시에 맞춤, 최소 3시간)
+  const from = z => toMin(z.busy_from !== z.busy_to ? z.busy_from : z.peak), to = z => toMin(z.busy_from !== z.busy_to ? z.busy_to : z.peak) + 15;
+  let lo = Math.floor((Math.min(...list.map(from)) - 30) / 60) * 60, hi = Math.ceil((Math.max(...list.map(to)) + 30) / 60) * 60;
+  if (hi - lo < 180) hi = lo + 180;
+  const pos = m => Math.max(0, Math.min(100, (m - lo) / (hi - lo) * 100));
+  const ticks = [];
+  for (let m = lo; m <= hi; m += 60) ticks.push(`<span style="left:${pos(m)}%">${m / 60}시</span>`);
+  $("zaxis").innerHTML = `<span></span><span class="ticks">${ticks.join("")}</span><span class="pad"></span>`;
   list.forEach(z => {
     const li = document.createElement("li");
     li.className = z.zone === zoneSel ? "on" : "";
-    const span = z.busy_from !== z.busy_to ? `${z.busy_from}~${addMin(z.busy_to, 15)}` : `${z.peak}~${addMin(z.peak, 15)}`;
+    const a = from(z), b = to(z), span = `${addMin("00:00", a)}~${addMin("00:00", b)}`;
     // 자리 구역: 평소 가장 붐비는 칸의 인원 ÷ 그 구역 좌석 → 혼잡 단계와 같은 기준(빈 자리 30%·10%)으로 표시
     const lv = z.peak_pct == null ? null : z.peak_pct > 90 ? "혼잡" : z.peak_pct > 70 ? "보통" : "여유";
-    const zi = zoneInfo(z.zone);
-    li.innerHTML = `<span class="zn">${zoneName(z.zone)}<small>${z.kiosk ? "주문 줄" : z.seats + "석" + (zi ? " · " + zi.hint : "")}</small></span>`
-      + `<span class="zt">평소 <b>${span}</b>에 가장 붐벼요 · ${z.kiosk ? `줄 앞 약 ${round(z.peak_people)}명` : `약 ${round(z.peak_people)}명 (자리의 ${z.peak_pct}%)`}</span>`
-      + (lv ? `<span class="pill ${lv}">${lv}</span>` : "<span></span>");
+    const zi = zoneInfo(z.zone), pk = toMin(z.peak) + 7.5;
+    li.innerHTML = `<span class="zn">${zi ? zi.name : zoneName(z.zone)}<small>${z.kiosk ? "주문 줄" : z.seats + "석"}</small></span>`
+      + `<span class="ztl"><span class="ztrack"><span class="zbusy ${lv || ""}" style="left:${pos(a)}%;width:${Math.max(2, pos(b) - pos(a))}%"></span>`
+      + `<span class="zpeak" style="left:${pos(pk)}%;color:${lv ? STATUS[lv] : "var(--data)"}"></span></span>`
+      + `<span class="ztxt"><b>${span}</b> · ${z.kiosk ? "줄" : ""} 약 ${round(z.peak_people)}명${z.kiosk ? "" : `<span class="zpct"> · 자리의 ${z.peak_pct}%</span>`}</span></span>`
+      + (lv ? `<span class="pill ${lv}">${lv}</span>` : `<span class="pad"></span>`);
+    li.title = `${zoneName(z.zone)} · 평소 ${span}에 가장 붐벼요`;
     li.addEventListener("click", () => { selectZone(z.zone); $("chartCard").scrollIntoView({behavior: "smooth", block: "start"}); });
     ul.appendChild(li);
   });
@@ -1199,7 +1373,11 @@ function renderTrend(){
 async function getJSON(u){ const r = await fetch(u, {cache: "no-store"}); if (!r.ok) throw new Error(r.status); return r.json(); }
 async function loadLatest(){
   try { renderLatest(await getJSON("/api/latest")); }
-  catch (e) { $("liveText").lastChild.textContent = "서버 연결 끊김 · 잠시 뒤 다시 시도해요"; $("dot").classList.add("off"); }
+  catch (e) {
+    $("liveText").lastChild.textContent = "연결 끊김"; $("dot").classList.add("off");
+    $("netBar").hidden = false;
+    if (!latest){ doneLoading(); setHero("지금은 정보를 불러올 수 없어요", "인터넷 연결을 확인해 주세요. 자동으로 다시 시도해요.", null); }
+  }
 }
 async function loadSlow(){
   try { todayRows = await getJSON("/api/today"); } catch (e) {}
@@ -1209,13 +1387,97 @@ async function loadSlow(){
 
 $("area").addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hideTip(); });
 
-// ── 밝은·어두운 화면 전환 ──
-$("themeBtn").addEventListener("click", () => {
-  const h = document.documentElement, dark = !h.dataset.dark;
+// ── 밝은·어두운 화면: 직접 고르면 기억, 아니면 휴대폰 설정을 따라감 ──
+function applyTheme(dark){
+  const h = document.documentElement;
   if (dark) h.dataset.dark = "1"; else delete h.dataset.dark;
   $("themeBtn").setAttribute("aria-label", dark ? "밝은 화면으로 전환" : "어두운 화면으로 전환");
+  $("themeColor").setAttribute("content", dark ? "#141414" : "#ffffff");
+}
+applyTheme(!!document.documentElement.dataset.dark);
+$("themeBtn").addEventListener("click", () => {
+  const dark = !document.documentElement.dataset.dark;
+  applyTheme(dark);
   try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch (e) {}
 });
+try {
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => { if (!store.get("theme")) applyTheme(e.matches); });
+} catch (e) {}
+
+// ── 아래에서 올라오는 시트: 정보(? 버튼) · 홈 화면 추가 안내 ──
+let sheetFrom = null;
+function openSheet(id){
+  closeSheets();
+  sheetFrom = document.activeElement;
+  $(id).hidden = false;
+  const btn = $(id).querySelector(".sheet-close"); if (btn) btn.focus({preventScroll: true});
+}
+function closeSheets(){
+  document.querySelectorAll(".sheet-wrap").forEach(w => w.hidden = true);
+  if (sheetFrom && sheetFrom.focus) sheetFrom.focus({preventScroll: true});
+  sheetFrom = null;
+}
+document.querySelectorAll(".sheet-wrap").forEach(w => w.addEventListener("click", e => { if (e.target.closest("[data-close]")) closeSheets(); }));
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheets(); });
+$("footInfo").addEventListener("click", () => openSheet("info"));
+$("infoTour").addEventListener("click", () => { closeSheets(); startTour(); });
+$("infoA2hs").addEventListener("click", () => showA2hs());
+
+// ── 홈 화면에 추가 ──
+// 홈 화면 아이콘으로 연 경우(앱 모드)는 안내하지 않음. 안드로이드 크롬은 바로 설치 창, 아이폰·카톡은 순서 안내
+const UA = navigator.userAgent;
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = /iPhone|iPad|iPod/.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const inApp = /KAKAOTALK/i.test(UA) ? "카카오톡" : /everytime/i.test(UA) ? "에브리타임" : /Instagram/i.test(UA) ? "인스타그램" : /NAVER\(inapp/i.test(UA) ? "네이버" : /FBAN|FBAV|Line\//.test(UA) ? "앱" : "";
+const SHARE_IC = '<span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></span>';
+const PLUS_IC = '<span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span>';
+const DOTS_IC = '<span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></span>';
+let installEvt = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; maybeShowA2hsBar(); });
+addEventListener("appinstalled", () => { installEvt = null; $("a2hs").hidden = true; store.set("a2hs_done", "1"); });
+function a2hsSteps(){
+  if (inApp) return [
+    `${inApp} 안에서 열린 화면에서는 홈 화면에 추가할 수 없어요.`,
+    `오른쪽 아래(또는 위)의 ${DOTS_IC} 메뉴에서 <b>다른 브라우저로 열기</b>를 눌러 주세요.<span class="note">아이폰은 Safari, 안드로이드는 Chrome으로 열면 돼요.</span>`,
+    "열린 브라우저에서 이 화면의 <b>홈 화면에 추가하는 법</b>을 다시 눌러 주세요."];
+  if (isIOS) return [
+    `화면 아래쪽(크롬은 주소창 오른쪽)의 공유 버튼 ${SHARE_IC}을 눌러 주세요.`,
+    `목록을 조금 내려서 ${PLUS_IC} <b>홈 화면에 추가</b>를 눌러 주세요.`,
+    "오른쪽 위 <b>추가</b>를 누르면 끝이에요. 홈 화면의 밥그릇 아이콘으로 열면 돼요."];
+  if (/Android/.test(UA)) return [
+    /SamsungBrowser/.test(UA) ? "아래쪽 <b>≡ 메뉴</b>를 눌러 주세요." : `주소창 오른쪽의 ${DOTS_IC} 메뉴를 눌러 주세요.`,
+    /SamsungBrowser/.test(UA) ? "<b>현재 페이지 추가</b> → <b>홈 화면</b>을 눌러 주세요." : "<b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 눌러 주세요.",
+    "홈 화면의 밥그릇 아이콘으로 열면 앱처럼 쓸 수 있어요."];
+  return ["휴대폰으로 이 주소를 열어 주세요.", "아이폰은 공유 버튼 → <b>홈 화면에 추가</b>, 안드로이드는 ⋮ 메뉴 → <b>홈 화면에 추가</b>를 누르면 돼요.",
+    "컴퓨터 크롬에서는 주소창 오른쪽의 설치 아이콘으로 앱처럼 띄울 수 있어요."];
+}
+async function showA2hs(){
+  if (installEvt && !inApp){                      // 안드로이드 크롬 등: 브라우저 설치 창을 바로 띄움
+    closeSheets();
+    installEvt.prompt();
+    const r = await installEvt.userChoice.catch(() => null);
+    installEvt = null;
+    if (r && r.outcome === "accepted"){ $("a2hs").hidden = true; store.set("a2hs_done", "1"); }
+    return;
+  }
+  $("a2hsSteps").innerHTML = a2hsSteps().map(t => `<li>${t}</li>`).join("");
+  openSheet("a2hsSheet");
+}
+// 띠는 휴대폰 브라우저에서만, 첫 안내(튜토리얼)를 본 뒤에, 닫으면 일주일 동안 안 보임
+function maybeShowA2hsBar(){
+  const phone = matchMedia("(pointer:coarse)").matches && innerWidth < 900;
+  const closedAt = +store.get("a2hs_x") || 0;
+  const show = !isStandalone() && (phone || installEvt) && store.get("tour_done") && !store.get("a2hs_done")
+    && Date.now() - closedAt > 7 * 24 * 3600 * 1000 && $("tour").hidden;
+  $("a2hs").hidden = !show;
+}
+$("a2hsGo").addEventListener("click", showA2hs);
+$("a2hsX").addEventListener("click", () => { $("a2hs").hidden = true; store.set("a2hs_x", Date.now()); });
+if (isStandalone()) document.documentElement.classList.add("standalone");
+
+// 꺼져 있을 때도 "인터넷 연결이 없어요" 화면을 보여주는 작은 서비스 워커 (항상 새로 받아 오고, 실패할 때만 대신 보여줌)
+if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("/sw.js").catch(() => {});
+
 
 // ── 예시 데이터 (&demo=1) ──
 if (DEMO){
@@ -1283,6 +1545,7 @@ renderCounters();
 if (!DEMO){
   let ref = "";
   try { const u = new URL(document.referrer); if (u.host !== location.host) ref = u.host; } catch (e) {}
+  if (isStandalone()) ref = "pwa";
   fetch("/api/visit", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({cid: clientId(), ref, team: isTeam()})}).catch(() => {});
 }
 loadLatest().then(() => {
@@ -1290,6 +1553,7 @@ loadLatest().then(() => {
   else if (DEMO && Q.get("away")) maybeAskReturn(+Q.get("away") * 60000);     // 예시 화면 확인용: ?demo=1&away=10
   else if (prevSeen) maybeAskReturn(Date.now() - prevSeen);
   markSeen();
+  maybeShowA2hsBar();
   return loadSlow();
 });
 setInterval(loadLatest, 10000);

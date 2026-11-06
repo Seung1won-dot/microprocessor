@@ -516,7 +516,8 @@ def _daily_rows():
     """날짜별 요약 (팀 테스트 의견 제외). 최신 날짜가 위."""
     with db() as con:
         v = {r["day"]: r for r in con.execute("""SELECT day, COUNT(DISTINCT cid) u, COUNT(*) n,
-                    COUNT(DISTINCT CASE WHEN ref LIKE '%everytime%' THEN cid END) et FROM visits GROUP BY day""")}
+                    COUNT(DISTINCT CASE WHEN ref LIKE '%everytime%' THEN cid END) et,
+                    COUNT(DISTINCT CASE WHEN ref = 'pwa' THEN cid END) hm FROM visits GROUP BY day""")}
         f = {r["d"]: r for r in con.execute("""SELECT substr(ts, 1, 10) d, COUNT(*) n,
                     SUM(answer = '맞아요') a0, SUM(answer = '더 붐볐어요') a1, SUM(answer = '더 한산했어요') a2,
                     SUM(source = 'return') rt, SUM(text IS NOT NULL AND text != '') tx
@@ -527,6 +528,7 @@ def _daily_rows():
         n = ff["n"] if ff else 0
         out.append({"day": d, "weekday": "월화수목금토일"[datetime.date.fromisoformat(d).weekday()],
                     "visitors": vv["u"] if vv else 0, "page_loads": vv["n"] if vv else 0, "from_everytime": vv["et"] if vv else 0,
+                    "from_home": vv["hm"] if vv else 0,
                     "feedback": n, "ok": ff["a0"] if ff else 0, "busier": ff["a1"] if ff else 0, "calmer": ff["a2"] if ff else 0,
                     "ok_pct": round(ff["a0"] / n * 100) if n else None, "via_return": ff["rt"] if ff else 0, "comments": ff["tx"] if ff else 0})
     return out
@@ -573,8 +575,8 @@ def stats_daily_csv():
     if not from_tailnet():
         return Response("not found", status=404)
     return _csv(_daily_rows(),
-                ["날짜", "요일", "방문자", "페이지 열기", "에브리타임 유입", "의견", "맞아요", "더 붐볐어요", "더 한산했어요", "맞아요 %", "돌아왔을 때 알림 응답", "한 줄 의견"],
-                ["day", "weekday", "visitors", "page_loads", "from_everytime", "feedback", "ok", "busier", "calmer", "ok_pct", "via_return", "comments"],
+                ["날짜", "요일", "방문자", "페이지 열기", "에브리타임 유입", "홈 화면 앱", "의견", "맞아요", "더 붐볐어요", "더 한산했어요", "맞아요 %", "돌아왔을 때 알림 응답", "한 줄 의견"],
+                ["day", "weekday", "visitors", "page_loads", "from_everytime", "from_home", "feedback", "ok", "busier", "calmer", "ok_pct", "via_return", "comments"],
                 "babmeok_daily.csv")
 
 
@@ -657,10 +659,10 @@ def stats():
     table_rows = "".join(
         f'<tr class="{"sel" if r["day"] == sel else ""}" onclick="location.href=\'?day={r["day"]}\'">'
         f'<td><a href="?day={r["day"]}">{r["day"][5:].replace("-", "/")}</a> <span class="wd">{r["weekday"]}</span></td>'
-        f'<td class="n"><b>{r["visitors"]}</b></td><td class="n">{r["page_loads"]}</td><td class="n">{r["from_everytime"]}</td>'
+        f'<td class="n"><b>{r["visitors"]}</b></td><td class="n">{r["page_loads"]}</td><td class="n">{r["from_everytime"]}</td><td class="n">{r["from_home"]}</td>'
         f'<td class="n"><b>{r["feedback"]}</b></td><td class="n g">{r["ok"]}</td><td class="n r">{r["busier"]}</td><td class="n b">{r["calmer"]}</td>'
         f'<td class="n"><b>{pct(r["ok_pct"])}</b></td><td class="n">{r["via_return"]}</td><td class="n">{r["comments"]}</td></tr>'
-        for r in daily) or '<tr><td colspan="11" class="empty">아직 기록이 없어요</td></tr>'
+        for r in daily) or '<tr><td colspan="12" class="empty">아직 기록이 없어요</td></tr>'
     sel_label = f'{sel[5:].replace("-", "/")}({"월화수목금토일"[datetime.date.fromisoformat(sel).weekday()]})'
     usage = table_usage(sel)
     done = [u for u in usage if u["uses"]]
@@ -754,8 +756,8 @@ ul.cm p{{margin:4px 0 0}} .empty{{color:var(--faint);margin:0}}
 
 <section class="row1 card"><h2>날짜별 정리 <span>날짜를 누르면 아래에 그날 자세히 · 팀 테스트 제외</span></h2>
 <div class="tbl"><table>
-<thead><tr><th></th><th class="grp" colspan="3">방문</th><th class="grp" colspan="5">의견</th><th class="grp" colspan="2">응답 방식</th></tr>
-<tr><th>날짜</th><th>방문자</th><th>페이지 열기</th><th>에타 유입</th><th>의견</th><th>맞아요</th><th>더 붐볐어요</th><th>더 한산했어요</th><th>맞아요 %</th><th>돌아왔을 때</th><th>한 줄 의견</th></tr></thead>
+<thead><tr><th></th><th class="grp" colspan="4">방문</th><th class="grp" colspan="5">의견</th><th class="grp" colspan="2">응답 방식</th></tr>
+<tr><th>날짜</th><th>방문자</th><th>페이지 열기</th><th>에타 유입</th><th title="홈 화면 아이콘으로 연 사람">홈 화면 앱</th><th>의견</th><th>맞아요</th><th>더 붐볐어요</th><th>더 한산했어요</th><th>맞아요 %</th><th>돌아왔을 때</th><th>한 줄 의견</th></tr></thead>
 <tbody>{table_rows}</tbody></table></div></section>
 
 <section class="row2">
@@ -818,6 +820,14 @@ def set_layout():
 def layout_editor():
     with open(os.path.join(BASE, "layout.html"), encoding="utf-8") as f:
         return Response(f.read(), mimetype="text/html")
+
+
+@app.get("/sw.js")
+def service_worker():
+    # 서비스 워커는 사이트 맨 위 주소에 있어야 전체 화면을 맡을 수 있음. 바로 갱신되도록 캐시하지 않음
+    r = app.send_static_file("sw.js")
+    r.headers["Cache-Control"] = "no-cache"
+    return r
 
 
 @app.get("/favicon.ico")
