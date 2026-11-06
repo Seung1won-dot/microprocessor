@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>밥먹을래말래 · 학생회관 1층 식당</title>
 <meta name="description" content="지금 가면 앉을 수 있을까? 학생회관 1층 식당의 혼잡도와 빈 자리를 실시간으로 보여줘요.">
-<meta name="theme-color" id="themeColor" content="#ffffff">
+<meta name="theme-color" id="themeColor" content="#F7F7F5">
 <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
 <link rel="icon" href="/static/icon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/static/icon-180.png">
@@ -29,7 +29,8 @@
 try{const t=localStorage.getItem("theme"),q=new URLSearchParams(location.search).get("dark");
 if(q==="1"||t==="dark"||(!t&&q!=="0"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.dataset.dark="1";}catch(e){}
 </script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css">
 <style>
 /* 디자인 기준: 앱 화면 규칙 (평평한 면, 색은 데이터·상태에만, 글자 크기 12/14/16/24/32, 4px 단위 간격) */
 :root{
@@ -531,6 +532,112 @@ html[data-dark] .a2hs{border:1px solid var(--border)}
   .zaxis .pad{width:36px}
   .zpct{display:none}
   .a2hs{margin-bottom:12px}
+}
+
+/* ══ 디자인 기준 (DESIGN.md, 11/6): 흰 바탕 + 먹색, 색은 상태에만, 카드 안의 카드 없음 ══ */
+:root{
+  --ground:#F7F7F5;--surface:#FFFFFF;--raised:#F1F1EE;--active:#E9E9E5;
+  --border:#E6E6E2;--rule:#ECECE8;--control:#CFCFCA;
+  --text:#191919;--muted:#62625E;--faint:#6F6F69;
+  --data:#191919;--data-2:#C8C8C2;--data-tint:rgba(25,25,25,.07);--on-data:#FFFFFF;
+  --ok:#276B43;--ok-fill:#2E8B57;--ok-bg:#E7F3EA;
+  --mid:#9A5A06;--mid-fill:#D99A2B;--mid-bg:#FBEFD9;
+  --busy:#B42318;--busy-fill:#D0402F;--busy-bg:#FBE4E1;
+  --seat-bg:#FFFFFF;--map-line:#D6D6D1;--fx:#EDEDE9;--unm-bg:#EFEFEC;--unm-line:#B5B5AF;
+  --grid-ink:rgba(25,25,25,.06);--usual:#E7E7E2;
+  --r-card:14px;--r-ctl:10px;--shadow:none;
+  --font-head:"Wanted Sans Variable","Wanted Sans","Pretendard Variable",Pretendard,sans-serif;
+}
+html[data-dark]{
+  --ground:#111111;--surface:#1A1A1A;--raised:#212121;--active:#2A2A2A;
+  --border:#2E2E2E;--rule:#272727;--control:#474747;
+  --text:#F2F2F0;--muted:#B3B3AE;--faint:#8F8F8A;
+  --data:#F2F2F0;--data-2:#55554F;--data-tint:rgba(242,242,240,.08);--on-data:#111111;
+  --ok:#5CC48A;--ok-fill:#3FA86E;--ok-bg:#16261C;
+  --mid:#F0B452;--mid-fill:#D99A35;--mid-bg:#2B2213;
+  --busy:#F07A6E;--busy-fill:#E0574A;--busy-bg:#2E1714;
+  --seat-bg:#1A1A1A;--map-line:#393936;--fx:#242424;--unm-bg:#202020;--unm-line:#4A4A47;
+  --grid-ink:rgba(255,255,255,.07);--usual:#2B2B29;--shadow:none;
+}
+body{font-family:"Pretendard Variable",Pretendard,-apple-system,"Apple SD Gothic Neo",sans-serif;letter-spacing:-.005em}
+/* 제목·숫자 글꼴 */
+.say strong,.kpi b,.zcard .zc-free,.card-head h2,.brand b,.sheet-head h2,.zpeaks-head h3,.a2hs-t b,.now-tag,.yaxis,.xlabels{font-family:var(--font-head)}
+.say strong{font-weight:800;letter-spacing:-.025em}
+.kpi b,.zcard .zc-free{font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.card-head h2{font-size:20px;line-height:28px;font-weight:750;letter-spacing:-.02em}
+.brand b{font-weight:800}
+/* 머리글: 바탕과 같은 색, 블러 장식 없음 */
+.topbar{background:var(--ground);-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:1px solid var(--rule)}
+.mark .logo,.sheet-head .logo,.a2hs-ic{background:var(--data);border-radius:10px}
+.mark .logo svg,.sheet-head .logo svg,.a2hs-ic svg{color:var(--on-data)!important}
+/* 판정 칸만 면으로 띄우고, 나머지 구역은 바탕 위에 제목 + 내용 + 가는 선 */
+.card{box-shadow:none}
+.card.answer{background:var(--surface);border:1px solid var(--border)}
+#chartCard,#seats,#fb{background:transparent;border:0;border-radius:0;padding:28px 4px 0;border-top:1px solid var(--rule)}
+.grid{gap:28px}
+/* 판정: 단계 바탕 위 글자는 회색 대신 단계 글자색 */
+.answer[data-level="여유"] .lead,.answer[data-level="여유"] .trend,.answer[data-level="여유"] .occ-labels{color:var(--ok)}
+.answer[data-level="보통"] .lead,.answer[data-level="보통"] .trend,.answer[data-level="보통"] .occ-labels{color:var(--mid)}
+.answer[data-level="혼잡"] .lead,.answer[data-level="혼잡"] .trend,.answer[data-level="혼잡"] .occ-labels{color:var(--busy)}
+.answer[data-level] .trend svg{color:currentColor}
+.answer[data-level] .occ-track{background:rgba(255,255,255,.65)}
+html[data-dark] .answer[data-level] .occ-track{background:rgba(0,0,0,.25)}
+.verdict .pill{background:var(--surface)}
+.kpi small{color:var(--muted)}
+.kpis{border-top-color:var(--rule)}
+.kpi+.kpi{border-left-color:var(--rule)}
+.counters{border-top-color:var(--rule)}
+.cchip{background:var(--surface)}
+.cchip.on{background:var(--ok-bg)}
+/* 버튼: 기본은 먹색, 선택된 버튼도 먹색으로 채움 */
+button.btn{border-color:var(--border);background:var(--surface)}
+.btn.primary{background:var(--data);border-color:var(--data);color:var(--on-data)}
+.btn.toggle{color:var(--muted)}
+.btn.toggle[aria-pressed="true"]{background:var(--data);border-color:var(--data);color:var(--on-data)}
+.btn.icon{background:transparent;border-color:transparent}
+.zone-tabs .btn{border-radius:999px}
+/* 구역 카드: 바탕 위 첫 번째 면 (카드 안 카드 아님) */
+.zcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-ctl)}
+.zcard[aria-pressed="true"]{border-color:var(--data);box-shadow:inset 0 0 0 1px var(--data)}
+.map{background:var(--surface);border:1px solid var(--border)}
+.map .seat.occ rect{fill:var(--data);stroke:var(--data)}
+.map .seat.emp rect{stroke:var(--text);stroke-opacity:.55}
+.map .zone.sel rect{stroke:var(--data);fill:var(--data-tint)}
+.map .zone.sel text{fill:var(--text)}
+.tlegend i.emp{border-color:var(--text);opacity:.7}
+.tlegend i.occ{background:var(--data);border-color:var(--data)}
+/* 그래프: 먹색 "지금", 지난 시간은 따뜻한 회색 */
+.bar.now{background:var(--data)}
+.now-tag{color:var(--text)}
+.legend i.past{background:var(--data-2)}
+.zbusy{background:var(--data)}
+/* 피드백 · 시트 · 홈 화면 띠: 면 하나씩만 */
+.fb{border-radius:0}
+.a2hs{background:var(--surface);border:1px solid var(--border);box-shadow:none}
+.sheet{background:var(--surface)}
+.sheet .privacy{background:var(--ok-bg)}
+.sheet .privacy p{color:var(--ok);opacity:.9}
+.netbar{border-bottom-color:var(--rule)}
+footer{border-top:0}
+/* 집계 안 하는 곳: 상태 색 대신 중립 빗금 */
+.map .blind rect{stroke:var(--faint);stroke-opacity:.45}
+.map .blind text{fill:var(--faint)}
+.tlegend i.blind{background:repeating-linear-gradient(45deg,var(--raised) 0 3px,var(--active) 3px 6px);border:1.5px dashed var(--faint)}
+@media (max-width:600px){
+  #chartCard,#seats,#fb{padding:24px 4px 0}
+  .grid{gap:24px}
+  .card-head h2{font-size:19px}
+  .kpi b{font-size:24px;line-height:30px}
+  .say strong{font-size:28px;line-height:36px}
+}
+/* 작은 휴대폰 (아이폰 SE 등) */
+@media (max-width:360px){
+  .brand small{display:none}
+  .say strong{font-size:25px;line-height:32px}
+  .kpi{padding:12px 8px 14px}
+  .kpi b{font-size:20px;line-height:26px}
+  .zcard .zc-free{font-size:19px}
+  .zcard .zc-sub{font-size:11px}
 }
 </style>
 </head>
@@ -1039,7 +1146,7 @@ function renderMap(states, zones){
   const box = $("map"), L = LAYOUT;
   const svg = mk("svg", {viewBox: `0 0 ${L.w} ${L.h}`, role: "img", "aria-label": "식당 자리 배치도"});
   svg.innerHTML = `<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-    <rect width="8" height="8" fill="var(--busy-bg)"/><line x1="0" y1="0" x2="0" y2="8" stroke="var(--busy)" stroke-opacity=".4" stroke-width="1.4"/></pattern></defs>`;
+    <rect width="8" height="8" fill="var(--raised)"/><line x1="0" y1="0" x2="0" y2="8" stroke="var(--faint)" stroke-opacity=".35" stroke-width="1.4"/></pattern></defs>`;
   const R = L.room || {x: 4, y: 4, w: L.w - 8, h: L.h - 8};
   svg.appendChild(mk("rect", {x: R.x, y: R.y, width: R.w, height: R.h, class: "room", "stroke-width": 2, rx: 8}));
   (L.zones || []).forEach(z => {
@@ -1392,7 +1499,7 @@ function applyTheme(dark){
   const h = document.documentElement;
   if (dark) h.dataset.dark = "1"; else delete h.dataset.dark;
   $("themeBtn").setAttribute("aria-label", dark ? "밝은 화면으로 전환" : "어두운 화면으로 전환");
-  $("themeColor").setAttribute("content", dark ? "#141414" : "#ffffff");
+  $("themeColor").setAttribute("content", dark ? "#111111" : "#F7F7F5");
 }
 applyTheme(!!document.documentElement.dataset.dark);
 $("themeBtn").addEventListener("click", () => {
