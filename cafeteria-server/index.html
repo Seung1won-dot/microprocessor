@@ -614,6 +614,34 @@ button.btn{border-color:var(--border);background:var(--surface)}
 /* 피드백 · 시트 · 홈 화면 띠: 면 하나씩만 */
 .fb{border-radius:0}
 .a2hs{background:var(--surface);border:1px solid var(--border);box-shadow:none}
+main>.a2hs{margin:0}
+.kpi b{white-space:nowrap}
+.zaxis .ticks span:last-child{transform:translateX(-100%)}
+/* 글 줄이기 (11/11): 빈 칸은 자리도 차지하지 않게, 붐비는 때 표는 이름 + 막대 두 칸 */
+.foot-note:empty,.zc-sub:empty,.cchip span:empty,#seatSum:empty,#zpeakMeta:empty,.lead[hidden]{display:none}
+.zpeaks li,.zaxis{grid-template-columns:72px minmax(0,1fr)}
+.zpeaks li{min-height:48px}
+.col:has(.now-tag){z-index:1}   /* "지금" 글자가 옆 막대에 가려지지 않게 */
+/* 자리 현황이 주인공 (11/11): 판정 칸은 얇게, 게이지는 배치도가 대신함 */
+.meter{display:none}
+@media (max-width:600px){
+  .verdict{padding:16px 16px 14px}
+  .kpi{padding:10px 12px 12px}
+  /* 휴대폰에서도 PC처럼: 구역 카드 세 장 + 전체 배치도 한 장 */
+  .zcards{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px}
+  .zcard{display:flex;flex-direction:column;align-items:stretch;padding:10px}
+  .zcard .zc-top{justify-content:space-between;gap:4px}
+  .zcard .zc-top .pill{padding:0 7px;font-size:11px}
+  .zcard .zc-lab{font-family:"Pretendard Variable",Pretendard,sans-serif;font-size:12px;font-weight:500;letter-spacing:0;color:var(--muted)}
+  .zcard .zc-free{margin:4px 0 0;text-align:left;font-size:22px;line-height:28px}
+  #mapZoom,#mapHint{display:none!important}
+  .map{margin:0 -16px;padding:8px 6px;border-left:0;border-right:0;border-radius:0}
+  .map text{display:none}
+  .map .fx.counter text{display:block;font-size:34px}
+  .map .seat rect{stroke-width:3}
+  .map .zone rect{stroke-width:2.5}
+  .map .zone.sel rect{stroke-width:5}
+}
 .sheet{background:var(--surface)}
 .sheet .privacy{background:var(--ok-bg)}
 .sheet .privacy p{color:var(--ok);opacity:.9}
@@ -638,6 +666,11 @@ footer{border-top:0}
   .kpi b{font-size:20px;line-height:26px}
   .zcard .zc-free{font-size:19px}
   .zcard .zc-sub{font-size:11px}
+  .zcard .zc-lab{display:none}
+  .zcard{padding:8px}
+  .zcard .zc-top{flex-wrap:wrap}
+  .zcard .zc-name{white-space:nowrap;font-size:13px}
+  .zcard .zc-top .pill{padding:0 5px;font-size:10px}
 }
 </style>
 </head>
@@ -662,14 +695,10 @@ footer{border-top:0}
 <div class="netbar" id="netBar" role="status" hidden>연결이 끊겼어요 · 다시 연결하는 중</div>
 
 <div class="wrap">
+  <!-- 배치도 빗금 무늬: 전체 배치도와 구역별 배치도가 함께 씀 (숨겨진 그림 안에 두면 무늬가 안 그려짐) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="8" height="8" fill="var(--raised)"/><line x1="0" y1="0" x2="0" y2="8" stroke="var(--faint)" stroke-opacity=".35" stroke-width="1.4"/></pattern></defs></svg>
   <h1 class="sr">학생회관 1층 식당 실시간 혼잡도</h1>
-  <div class="a2hs" id="a2hs" hidden>
-    <span class="a2hs-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg></span>
-    <span class="a2hs-t"><b>홈 화면에 추가하기</b><small>앱처럼 한 번에 열 수 있어요</small></span>
-    <button class="btn primary" id="a2hsGo" type="button">추가하기</button>
-    <button class="a2hs-x" id="a2hsX" type="button" aria-label="안내 닫기">×</button>
-  </div>
-
   <main class="grid">
     <section class="card answer full" id="answer" aria-live="polite">
       <div class="verdict">
@@ -679,9 +708,6 @@ footer{border-top:0}
       <div class="meter" id="occ" hidden>
         <div class="occ-track">
           <span class="occ-fill" id="occFill"></span>
-        </div>
-        <div class="occ-labels tnum">
-          <span class="m" id="occMobile"></span>
         </div>
       </div>
       </div>
@@ -693,9 +719,30 @@ footer{border-top:0}
       <div class="counters" id="counters" aria-label="배식대 영업 상태"></div>
     </section>
 
+    <section class="card full" id="seats">
+      <div class="card-head"><h2>자리 현황</h2><span class="meta tnum" id="seatSum"></span></div>
+      <div class="zcards" id="zcards" role="group" aria-label="구역별 빈 자리" hidden></div>
+      <button class="btn toggle map-zoom" id="mapZoom" type="button" aria-pressed="false">배치도 크게 보기</button>
+      <p class="map-hint" id="mapHint">← 배치도를 좌우로 밀어서 볼 수 있어요 →</p>
+      <div class="map" id="map"></div>
+      <div class="tlegend map-legend">
+        <span><i class="emp"></i>빈 자리</span><span><i class="occ"></i>사용 중</span>
+        <span><i class="away"></i>자리 비움</span>
+        <span><i class="blind"></i>집계 안 함</span><span><i class="door"></i>출입구</span>
+      </div>
+      <p class="foot-note" id="seatNote"></p>
+    </section>
+
+    <div class="a2hs full" id="a2hs" hidden>
+      <span class="a2hs-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg></span>
+      <span class="a2hs-t"><b>홈 화면에 추가하기</b></span>
+      <button class="btn primary" id="a2hsGo" type="button">추가</button>
+      <button class="a2hs-x" id="a2hsX" type="button" aria-label="안내 닫기">×</button>
+    </div>
+
     <section class="card full" id="chartCard">
       <div class="card-head">
-        <h2 id="chartTitle">오늘 시간대별 인원 · 15분 단위</h2>
+        <h2 id="chartTitle">시간대별 인원</h2>
         <div class="head-actions">
           <div class="legend in-head">
             <span><i class="past"></i>오늘</span>
@@ -712,28 +759,14 @@ footer{border-top:0}
       <div class="xwrap"><div class="xlabels tnum" id="xlabels" aria-hidden="true"></div></div>
       <p class="chart-empty" id="chartSub"></p>
       <div id="zpeakBox" hidden>
-        <div class="zpeaks-head"><h3>구역별로 평소 가장 붐비는 때</h3><span id="zpeakMeta"></span></div>
+        <div class="zpeaks-head"><h3>평소 붐비는 때</h3><span id="zpeakMeta"></span></div>
         <div class="zaxis tnum" id="zaxis" aria-hidden="true"></div>
         <ul class="zpeaks tnum" id="zpeaks"></ul>
       </div>
     </section>
 
-    <section class="card full" id="seats">
-      <div class="card-head"><h2>자리 현황</h2><span class="meta tnum" id="seatSum"></span></div>
-      <div class="zcards" id="zcards" role="group" aria-label="구역별 빈 자리" hidden></div>
-      <button class="btn toggle map-zoom" id="mapZoom" type="button" aria-pressed="false">배치도 크게 보기</button>
-      <p class="map-hint" id="mapHint">← 배치도를 좌우로 밀어서 볼 수 있어요 →</p>
-      <div class="map" id="map"></div>
-      <div class="tlegend map-legend">
-        <span><i class="emp"></i>빈 자리</span><span><i class="occ"></i>사용 중</span>
-        <span><i class="away"></i>자리 비움</span>
-        <span><i class="blind"></i>집계 안 함</span><span><i class="door"></i>출입구</span>
-      </div>
-      <p class="foot-note" id="seatNote">자리 비움은 잠깐 자리를 비운 것으로 보이는 자리예요. 빗금 친 곳은 집계하지 않아요.</p>
-    </section>
-
     <section class="card full fb" id="fb" hidden>
-      <div class="fb-q"><b>지금 화면, 실제랑 비슷했나요?</b><span>식당에서 보고 계시면 한 번 눌러 주세요</span></div>
+      <div class="fb-q"><b>지금 화면, 실제랑 비슷했나요?</b></div>
       <div class="fb-btns" id="fbBtns">
         <button class="btn" type="button" data-a="맞아요">맞아요</button>
         <button class="btn" type="button" data-a="더 붐볐어요">더 붐볐어요</button>
@@ -787,7 +820,7 @@ footer{border-top:0}
     <dl class="kv tnum"><dt>운영</dt><dd>종강 전까지 평일 08:00–19:30</dd><dt>참고</dt><dd>주문 대기는 키오스크 앞 줄로 낸 추정값이에요.</dd></dl>
     <div class="sheet-actions">
       <button class="btn" id="infoA2hs" type="button">홈 화면에 추가하는 법</button>
-      <button class="btn" id="infoTour" type="button">사용법 다시 보기</button>
+      <button class="btn" id="infoTour" type="button">사용법 보기</button>
     </div>
     <button class="btn primary sheet-close" type="button" data-close>닫기</button>
   </section>
@@ -809,9 +842,9 @@ const $ = id => document.getElementById(id);
 const STATUS = {"여유":"var(--ok-fill)","보통":"var(--mid-fill)","혼잡":"var(--busy-fill)"};
 const STATUS_TXT = {"여유":"var(--ok)","보통":"var(--mid)","혼잡":"var(--busy)"};
 const COPY = {
-  "여유":["지금 가면 바로 앉을 수 있어요","빈 자리가 넉넉해요."],
-  "보통":["지금 가도 앉을 수 있어요","자리가 조금씩 차고 있어요."],
-  "혼잡":["지금은 자리 찾기가 어려워요","빈 자리가 거의 없어요. 조금 뒤를 추천해요."]
+  "여유":["지금 가면 바로 앉을 수 있어요",""],
+  "보통":["지금 가도 앉을 수 있어요",""],
+  "혼잡":["지금은 자리 찾기가 어려워요","조금 뒤에 가는 걸 추천해요."]
 };
 const ICON = {
   up:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>',
@@ -910,7 +943,7 @@ function counterState(c){
   if (t < c.open) return {st: "off", text: `${c.open} 시작`};
   if (t >= close) return {st: "off", text: `${close} 마감`};
   const soon = toMin(close) - toMin(t) <= 30;
-  return {st: soon ? "on soon" : "on", text: soon ? `곧 마감 · ${close}` : `~${close}`};
+  return {st: soon ? "on soon" : "on", text: soon ? `곧 마감 · ${close}` : ""};
 }
 // ── 이용자 의견: 카드 아래 버튼 · 돌아왔을 때 알림 (같은 기기 10분에 한 번) ──
 const FB_GAP = 10 * 60 * 1000;
@@ -995,7 +1028,7 @@ document.addEventListener("visibilitychange", () => {
 });
 setInterval(() => { if (!document.hidden) markSeen(); }, 30000);
 
-// ── 첫 접속 튜토리얼: 화면을 어둡게 덮고 세 곳을 차례로 안내 (기기당 한 번, ? 버튼으로 다시 보기) ──
+// ── 사용법 안내: 화면을 어둡게 덮고 세 곳을 차례로 안내. 자동으로 띄우지 않고 정보(ⓘ) 시트의 "사용법 보기"로만 엶 ──
 const TOUR = [
   {sel: "#answer .say", title: "지금 가면 앉을 수 있을까?", text: "지금 혼잡도를 여유 · 보통 · 혼잡으로 바로 알려 줘요. 10초마다 새로 고쳐져요."},
   {sel: "#answer .kpis", title: "빈 테이블과 주문 대기", text: "남은 테이블 수, 식당 인원, 키오스크 대기를 볼 수 있어요. 아래로 내리면 어느 자리가 비었는지 배치도도 있어요."},
@@ -1044,6 +1077,7 @@ addEventListener("scroll", placeTour, {passive: true});
 function renderCounters(){
   const box = $("counters");
   box.innerHTML = "<small>배식대</small>";
+  box.hidden = COUNTERS.every(c => counterState(c).st === "on");
   COUNTERS.forEach(c => {
     const s = counterState(c), el = document.createElement("span");
     el.className = "cchip " + s.st;
@@ -1069,7 +1103,7 @@ function setVal(id, text){
 function doneLoading(){ $("headline").classList.remove("sk"); }   // 숫자 칸은 setVal이 처음 채울 때 걷어냄
 
 function setHero(h, s, lv){
-  $("headline").textContent = h; $("sub").textContent = s;
+  $("headline").textContent = h; $("sub").textContent = s; $("sub").hidden = !s;
   $("answer").dataset.level = lv || "";
   const b = $("badge");
   if (lv){ b.hidden = false; b.textContent = lv; b.className = "pill " + lv; }
@@ -1096,24 +1130,24 @@ function renderLatest(d){
     if (sm && sm.total){
       $("seatLabel").textContent = "빈 테이블";
       setVal("seatMain", `${sm.empty}개`);
-      $("seatSub").textContent = sm.free_seats != null ? `빈 좌석 약 ${sm.free_seats}석` : "\u00a0";
+      $("seatSub").textContent = sm.free_seats != null ? `약 ${sm.free_seats}석` : "\u00a0";
     } else {
       $("seatLabel").textContent = "빈 자리";
-      setVal("seatMain", `약 ${Math.max(0, cap - d.people)}석`);
-      $("seatSub").textContent = `전체 ${cap}석 기준`;
+      setVal("seatMain", `${Math.max(0, cap - d.people)}석`);
+      $("seatSub").textContent = "어림값";
     }
     $("seatMain").style.color = STATUS_TXT[d.level] || "";
     setVal("peopleMain", `${d.people}명`);
-    $("peopleSub").textContent = `전체 ${cap}석`;
+    $("peopleSub").textContent = "\u00a0";
     // 게이지: 혼잡 단계와 같은 기준 = 사용 좌석 max(점유 테이블 좌석, 인원) / 전체 좌석. 테이블 판정이 없으면 좌석 대비 인원
     $("occ").hidden = false;
     const f = $("occFill");
     if (d.used_seats != null){
       f.style.width = Math.min(100, d.used_seats / cap * 100) + "%";
-      $("occMobile").textContent = `전체 ${cap}석 중 ${d.used_seats}석 사용 중`;
+      $("occ").title = `전체 ${cap}석 중 ${d.used_seats}석 사용 중`;
     } else {
       f.style.width = Math.min(100, 100 - (d.free_pct || 0)) + "%";
-      $("occMobile").textContent = `전체 ${cap}석 중 약 ${Math.min(cap, d.people)}석 사용 중`;
+      $("occ").title = `전체 ${cap}석 중 약 ${Math.min(cap, d.people)}석 사용 중`;
     }
     f.style.background = STATUS[d.level];
   } else {
@@ -1127,7 +1161,7 @@ function renderLatest(d){
     $("kioskSub").textContent = "지금은 알 수 없어요";
   } else if (d.open && ok && k && k.people != null){
     setVal("kioskMain", k.queue <= 0 ? "바로 주문" : `약 ${Math.max(1, Math.round(k.wait_min))}분`);
-    $("kioskSub").textContent = k.queue <= 0 ? "줄 없음" : `줄 ${k.queue}명`;
+    $("kioskSub").textContent = k.queue <= 0 ? "\u00a0" : `줄 ${k.queue}명`;
     $("kioskSub").title = k.queue <= 0 ? `키오스크 앞 ${k.people}명` : `1분에 약 ${k.rate}명씩 줄어요`;
     $("kioskMain").style.color = kioskLevel(k.queue) === "혼잡" ? "var(--busy)" : "";
   } else {
@@ -1144,9 +1178,9 @@ const NS = "http://www.w3.org/2000/svg";
 const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
 function renderMap(states, zones){
   const box = $("map"), L = LAYOUT;
-  const svg = mk("svg", {viewBox: `0 0 ${L.w} ${L.h}`, role: "img", "aria-label": "식당 자리 배치도"});
-  svg.innerHTML = `<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-    <rect width="8" height="8" fill="var(--raised)"/><line x1="0" y1="0" x2="0" y2="8" stroke="var(--faint)" stroke-opacity=".35" stroke-width="1.4"/></pattern></defs>`;
+  const R0 = L.room || {x: 4, y: 4, w: L.w - 8, h: L.h - 8};
+  const phone = matchMedia("(max-width:600px)").matches;
+  const svg = mk("svg", {viewBox: phone ? `${R0.x - 4} ${R0.y - 4} ${R0.w + 8} ${R0.h + 8}` : `0 0 ${L.w} ${L.h}`, role: "img", "aria-label": "식당 자리 배치도"});
   const R = L.room || {x: 4, y: 4, w: L.w - 8, h: L.h - 8};
   svg.appendChild(mk("rect", {x: R.x, y: R.y, width: R.w, height: R.h, class: "room", "stroke-width": 2, rx: 8}));
   (L.zones || []).forEach(z => {
@@ -1222,13 +1256,13 @@ function renderZoneCards(zones){
     b.setAttribute("aria-pressed", seatZone === cam);
     b.innerHTML = `<span class="zc-top"><span class="zc-name"></span>${off || !z.level ? "" : `<span class="pill ${z.level}">${z.level}</span>`}</span>`
       + `<span class="zc-hint"></span><span class="zc-free tnum"></span><span class="zc-sub tnum"></span>`;
-    b.querySelector(".zc-name").textContent = name + " 구역";
+    b.querySelector(".zc-name").textContent = name;
     b.querySelector(".zc-name").title = hint;
     b.querySelector(".zc-hint").textContent = hint;
     if (off){ b.querySelector(".zc-free").textContent = "지금 확인 안 됨"; b.querySelector(".zc-sub").textContent = "잠시 뒤 다시 보여요"; }
     else {
-      b.querySelector(".zc-free").innerHTML = `빈 자리 ${z.free_seats}<small>석</small>`;
-      b.querySelector(".zc-sub").textContent = `빈 테이블 ${z.empty} · 사용 중 ${z.occupied}` + (z.away ? ` · 비움 ${z.away}` : "");
+      b.querySelector(".zc-free").innerHTML = `<span class="zc-lab">빈 자리 </span>${z.free_seats}<small>석</small>`;
+      b.title = `빈 테이블 ${z.empty} · 사용 중 ${z.occupied}` + (z.away ? ` · 비움 ${z.away}` : "");
     }
     b.addEventListener("click", () => selectSeatZone(cam));
     box.appendChild(b);
@@ -1260,14 +1294,13 @@ function renderSeats(d){
   renderZoneCards(t && Object.keys(t).length ? d.zones : null);
   if (t && Object.keys(t).length){
     const sm = d.summary || {};
-    $("seatSum").textContent = `빈 자리 ${sm.empty} · 사용 중 ${sm.occupied} · 자리 비움 ${sm.away}` + (sm.unknown ? ` · 확인 불가 ${sm.unknown}` : "");
+    $("seatSum").textContent = sm.unknown ? `확인 불가 ${sm.unknown}` : "";
     renderMap(t, d.zones);
-    $("seatNote").textContent = "자리 비움은 잠깐 자리를 비운 것으로 보이는 자리예요. 빗금 친 곳은 집계하지 않아요."
-      + (sm.unknown_seats ? ` 지금 확인할 수 없는 ${sm.unknown_seats}석(회색 점선)은 빼고 계산했어요.` : "");
+    $("seatNote").textContent = sm.unknown_seats ? `지금 확인할 수 없는 ${sm.unknown_seats}석(회색 점선)은 빼고 계산했어요.` : "";
   } else {
-    $("seatSum").textContent = d && live() ? "자리별 판정 준비 중" : "";
+    $("seatSum").textContent = d && live() ? "준비 중" : "";
     renderMap(null);
-    $("seatNote").textContent = d && live() ? "자리별 상태는 준비 중이에요." : "운영 시간에 자리별 상태가 보여요. 빗금 친 곳은 집계하지 않아요.";
+    $("seatNote").textContent = d && live() ? "" : "운영 시간에 자리별 상태가 보여요.";
   }
 }
 
@@ -1307,7 +1340,7 @@ function renderSlots(s){
   slotData = s;
   zoneSel = s.zone || "all";
   const zoned = zoneSel !== "all";
-  $("chartTitle").textContent = zoned ? `${zoneName(zoneSel)} · 오늘 시간대별 인원` : "오늘 시간대별 인원 · 15분 단위";
+  $("chartTitle").textContent = zoned ? `${zoneName(zoneSel)} · 시간대별 인원` : "시간대별 인원";
   renderZoneTabs(s.zones || []);
   $("chartSub").textContent = s.days > 0 ? "" : "평소 값은 기록이 쌓이면 보여요.";
   hideTip();
@@ -1395,7 +1428,7 @@ function setScale(raw){
 }
 
 // ── 구역별 보기: 그래프 위 구역 버튼, 그래프 아래 구역마다 평소 가장 붐비는 때 ──
-const zoneName = z => z === "all" ? "전체" : z === "cam4" ? "키오스크 줄" : zoneInfo(z) ? zoneInfo(z).name + " 구역" : "구역 " + z.replace("cam", "");
+const zoneName = z => z === "all" ? "전체" : z === "cam4" ? "주문 줄" : zoneInfo(z) ? zoneInfo(z).name : "구역 " + z.replace("cam", "");
 // 구역 순서: 배치도 왼쪽 → 오른쪽, 그다음 키오스크 줄
 const zoneOrder = list => ZONES.map(v => v.cam).filter(z => list.includes(z)).concat(list.filter(z => !zoneInfo(z)));
 function renderZoneTabs(zones){
@@ -1437,7 +1470,7 @@ function renderZonePeaks(d){
   const pos = m => Math.max(0, Math.min(100, (m - lo) / (hi - lo) * 100));
   const ticks = [];
   for (let m = lo; m <= hi; m += 60) ticks.push(`<span style="left:${pos(m)}%">${m / 60}시</span>`);
-  $("zaxis").innerHTML = `<span></span><span class="ticks">${ticks.join("")}</span><span class="pad"></span>`;
+  $("zaxis").innerHTML = `<span></span><span class="ticks">${ticks.join("")}</span>`;
   list.forEach(z => {
     const li = document.createElement("li");
     li.className = z.zone === zoneSel ? "on" : "";
@@ -1445,17 +1478,16 @@ function renderZonePeaks(d){
     // 자리 구역: 평소 가장 붐비는 칸의 인원 ÷ 그 구역 좌석 → 혼잡 단계와 같은 기준(빈 자리 30%·10%)으로 표시
     const lv = z.peak_pct == null ? null : z.peak_pct > 90 ? "혼잡" : z.peak_pct > 70 ? "보통" : "여유";
     const zi = zoneInfo(z.zone), pk = toMin(z.peak) + 7.5;
-    li.innerHTML = `<span class="zn">${zi ? zi.name : zoneName(z.zone)}<small>${z.kiosk ? "주문 줄" : z.seats + "석"}</small></span>`
+    li.innerHTML = `<span class="zn">${zi ? zi.name : zoneName(z.zone)}</span>`
       + `<span class="ztl"><span class="ztrack"><span class="zbusy ${lv || ""}" style="left:${pos(a)}%;width:${Math.max(2, pos(b) - pos(a))}%"></span>`
       + `<span class="zpeak" style="left:${pos(pk)}%;color:${lv ? STATUS[lv] : "var(--data)"}"></span></span>`
-      + `<span class="ztxt"><b>${span}</b> · ${z.kiosk ? "줄" : ""} 약 ${round(z.peak_people)}명${z.kiosk ? "" : `<span class="zpct"> · 자리의 ${z.peak_pct}%</span>`}</span></span>`
-      + (lv ? `<span class="pill ${lv}">${lv}</span>` : `<span class="pad"></span>`);
-    li.title = `${zoneName(z.zone)} · 평소 ${span}에 가장 붐벼요`;
+      + `<span class="ztxt"><b>${span}</b></span></span>`;
+    li.title = `${zoneName(z.zone)} · 평소 ${span}에 가장 붐벼요 (약 ${round(z.peak_people)}명)`;
     li.addEventListener("click", () => { selectZone(z.zone); $("chartCard").scrollIntoView({behavior: "smooth", block: "start"}); });
     ul.appendChild(li);
   });
   const days = Math.max(0, ...list.map(z => z.days));
-  $("zpeakMeta").textContent = days ? `지난 평일 ${days}일 기준` : "";
+  $("zpeakMeta").textContent = ""; $("zpeakBox").title = days ? `지난 평일 ${days}일 기준` : "";
 }
 
 function renderTrend(){
@@ -1469,8 +1501,8 @@ function renderTrend(){
   const avg = xs => xs.reduce((s, r) => s + r.total, 0) / xs.length;
   const diff = avg(a) - avg(b);
   let msg, icon;
-  if (diff >= cap * 0.05){ msg = `최근 10분 동안 약 ${Math.round(diff)}명 늘었어요.`; icon = ICON.up; }
-  else if (diff <= -cap * 0.05){ msg = `최근 10분 동안 약 ${Math.round(-diff)}명 줄었어요.`; icon = ICON.down; }
+  if (diff >= cap * 0.05){ msg = `10분 새 ${Math.round(diff)}명 늘었어요`; icon = ICON.up; }
+  else if (diff <= -cap * 0.05){ msg = `10분 새 ${Math.round(-diff)}명 줄었어요`; icon = ICON.down; }
   else { el.hidden = true; return; }
   el.innerHTML = icon + "<span></span>";
   el.querySelector("span").textContent = msg;
@@ -1570,11 +1602,11 @@ async function showA2hs(){
   $("a2hsSteps").innerHTML = a2hsSteps().map(t => `<li>${t}</li>`).join("");
   openSheet("a2hsSheet");
 }
-// 띠는 휴대폰 브라우저에서만, 첫 안내(튜토리얼)를 본 뒤에, 닫으면 일주일 동안 안 보임
+// 띠는 휴대폰 브라우저에서만, 판정 칸 바로 아래에. 닫으면 일주일 동안 안 보임
 function maybeShowA2hsBar(){
   const phone = matchMedia("(pointer:coarse)").matches && innerWidth < 900;
   const closedAt = +store.get("a2hs_x") || 0;
-  const show = !isStandalone() && (phone || installEvt) && store.get("tour_done") && !store.get("a2hs_done")
+  const show = !isStandalone() && (phone || installEvt) && !store.get("a2hs_done")
     && Date.now() - closedAt > 7 * 24 * 3600 * 1000 && $("tour").hidden;
   $("a2hs").hidden = !show;
 }
@@ -1656,8 +1688,7 @@ if (!DEMO){
   fetch("/api/visit", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({cid: clientId(), ref, team: isTeam()})}).catch(() => {});
 }
 loadLatest().then(() => {
-  if (!store.get("tour_done") && !Q.has("notour")) setTimeout(startTour, 500);
-  else if (DEMO && Q.get("away")) maybeAskReturn(+Q.get("away") * 60000);     // 예시 화면 확인용: ?demo=1&away=10
+  if (DEMO && Q.get("away")) maybeAskReturn(+Q.get("away") * 60000);     // 예시 화면 확인용: ?demo=1&away=10
   else if (prevSeen) maybeAskReturn(Date.now() - prevSeen);
   markSeen();
   maybeShowA2hsBar();
