@@ -622,6 +622,12 @@ main>.a2hs{margin:0}
 .zpeaks li,.zaxis{grid-template-columns:72px minmax(0,1fr)}
 .zpeaks li{min-height:48px}
 .col:has(.now-tag){z-index:1}   /* "지금" 글자가 옆 막대에 가려지지 않게 */
+/* 운영 종료 안내 (11/16): 안내 칸만 보이고 나머지는 숨김. 예시 화면(?demo=1)은 그대로 */
+html.ended main > :not(#ended),html.ended footer,html.ended #infoTour,html.ended #infoA2hs,html.ended .kv dt:nth-of-type(2),html.ended .kv dd:nth-of-type(2){display:none!important}
+.ended-card{background:var(--surface);border:1px solid var(--border);padding:32px 28px}
+.ended-h{display:block;font-family:var(--font-head);font-size:28px;line-height:36px;font-weight:800;letter-spacing:-.025em}
+.ended-card p{margin:10px 0 22px;font-size:16px;line-height:25px;color:var(--muted);word-break:keep-all}
+.ended-card .btn{height:44px;padding:0 18px}
 /* 자리 현황이 주인공 (11/11): 판정 칸은 얇게, 게이지는 배치도가 대신함 */
 .meter{display:none}
 @media (max-width:600px){
@@ -700,6 +706,12 @@ footer{border-top:0}
     <rect width="8" height="8" fill="var(--raised)"/><line x1="0" y1="0" x2="0" y2="8" stroke="var(--faint)" stroke-opacity=".35" stroke-width="1.4"/></pattern></defs></svg>
   <h1 class="sr">학생회관 1층 식당 실시간 혼잡도</h1>
   <main class="grid">
+    <section class="card full ended-card" id="ended" hidden>
+      <strong class="ended-h">운영을 종료했어요</strong>
+      <p>11월 16일에 카메라를 모두 철거했어요.<br>그동안 600명 넘게 이용해 주셔서 고마워요.</p>
+      <button class="btn primary" id="endedDemo" type="button">예시 화면 보기</button>
+    </section>
+
     <section class="card answer full" id="answer" aria-live="polite">
       <div class="verdict">
       <div class="say"><strong id="headline" class="sk">지금 가도 앉을 수 있어요</strong><span class="pill" id="badge" hidden></span></div>
@@ -806,7 +818,7 @@ footer{border-top:0}
 </div>
 
 <footer>
-  <button class="foot-privacy" id="footInfo" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>카메라 영상은 저장하거나 전송하지 않아요</button>
+  <button class="foot-privacy" id="footInfo" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>카메라 영상은 저장하거나 전송하지 않았어요</button>
 </footer>
 
 <!-- 정보 시트 (? 버튼) -->
@@ -815,9 +827,9 @@ footer{border-top:0}
   <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
     <div class="grab" aria-hidden="true"></div>
     <div class="sheet-head"><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0Z"/><path d="M9.5 8.5c0-1.6 1.2-1.6 1.2-3.3M13.8 8.5c0-1.6 1.2-1.6 1.2-3.3"/></svg></span><div><h2 id="infoTitle">밥먹을래말래</h2><small>학생회관 1층 식당 실시간 혼잡도</small></div></div>
-    <p>식당에 가기 전에 지금 앉을 자리가 있는지 알려줘요. 카메라로 식당 안 인원과 빈 테이블을 세어 10초마다 새로 보여줘요.</p>
-    <div class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg><div><b>카메라 영상은 저장하거나 전송하지 않아요</b><p>영상은 식당 안 장치에서 사람 수를 세는 데만 쓰고 바로 버려요. 얼굴이나 개인을 알아보는 정보는 모으지 않아요.</p></div></div>
-    <dl class="kv tnum"><dt>운영</dt><dd>종강 전까지 평일 08:00–19:30</dd><dt>참고</dt><dd>주문 대기는 키오스크 앞 줄로 낸 추정값이에요.</dd></dl>
+    <p>식당에 가기 전에 지금 앉을 자리가 있는지 알려 주던 서비스예요. 카메라로 식당 안 인원과 빈 테이블을 세어 10초마다 새로 보여줬어요.</p>
+    <div class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg><div><b>카메라 영상은 저장하거나 전송하지 않았어요</b><p>영상은 식당 안 장치에서 사람 수를 세는 데만 쓰고 바로 버렸어요. 얼굴이나 개인을 알아보는 정보는 모으지 않았고, 카메라는 11월 16일에 모두 철거했어요.</p></div></div>
+    <dl class="kv tnum"><dt>운영</dt><dd>2026.10.21 ~ 11.16 (종료)</dd><dt>참고</dt><dd>주문 대기는 키오스크 앞 줄로 낸 추정값이에요.</dd></dl>
     <div class="sheet-actions">
       <button class="btn" id="infoA2hs" type="button">홈 화면에 추가하는 법</button>
       <button class="btn" id="infoTour" type="button">사용법 보기</button>
@@ -927,6 +939,8 @@ let seatZone = ZONES[0].cam;
 
 const Q = new URLSearchParams(location.search);
 const DEMO = Q.has("demo");
+const ENDED = true;                 // 2026-11-16 카메라 철거로 운영 종료. 예시 화면(?demo=1)만 그대로 동작
+const ENDED_MODE = ENDED && !DEMO;
 const KIOSK_OFF = "19:00";
 // 배식대 영업시간 (학생회관 안내 기준). fri: 금요일 마감
 const COUNTERS = [
@@ -1511,6 +1525,7 @@ function renderTrend(){
 
 async function getJSON(u){ const r = await fetch(u, {cache: "no-store"}); if (!r.ok) throw new Error(r.status); return r.json(); }
 async function loadLatest(){
+  if (ENDED_MODE) return;
   try { renderLatest(await getJSON("/api/latest")); }
   catch (e) {
     $("liveText").lastChild.textContent = "연결 끊김"; $("dot").classList.add("off");
@@ -1519,6 +1534,7 @@ async function loadLatest(){
   }
 }
 async function loadSlow(){
+  if (ENDED_MODE) return;
   try { todayRows = await getJSON("/api/today"); } catch (e) {}
   try { renderSlots(await getJSON("/api/slots?zone=" + encodeURIComponent(zoneSel))); } catch (e) {}
   try { renderZonePeaks(await getJSON("/api/zones")); } catch (e) {}
@@ -1606,7 +1622,7 @@ async function showA2hs(){
 function maybeShowA2hsBar(){
   const phone = matchMedia("(pointer:coarse)").matches && innerWidth < 900;
   const closedAt = +store.get("a2hs_x") || 0;
-  const show = !isStandalone() && (phone || installEvt) && !store.get("a2hs_done")
+  const show = !ENDED && !isStandalone() && (phone || installEvt) && !store.get("a2hs_done")
     && Date.now() - closedAt > 7 * 24 * 3600 * 1000 && $("tour").hidden;
   $("a2hs").hidden = !show;
 }
@@ -1621,7 +1637,7 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.ser
 // ── 예시 데이터 (&demo=1) ──
 if (DEMO){
   const note = document.createElement("p"); note.className = "demo-note";
-  note.textContent = "예시 데이터로 보는 화면이에요. 실제 식당 상황이 아니에요.";
+  note.textContent = ENDED ? "운영은 끝났어요. 예시 데이터로 보는 화면이에요." : "예시 데이터로 보는 화면이에요. 실제 식당 상황이 아니에요.";
   document.querySelector(".topbar").after(note);
   const real = window.fetch.bind(window), J = o => new Response(JSON.stringify(o));
   // 지난 평일 평균 (08:00~19:15, 15분 칸): 아침 조금, 점심 12시 정점, 저녁 18시 작은 정점
@@ -1686,6 +1702,13 @@ if (!DEMO){
   try { const u = new URL(document.referrer); if (u.host !== location.host) ref = u.host; } catch (e) {}
   if (isStandalone()) ref = "pwa";
   fetch("/api/visit", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({cid: clientId(), ref, team: isTeam()})}).catch(() => {});
+}
+if (ENDED_MODE){
+  document.documentElement.classList.add("ended");
+  $("ended").hidden = false;
+  $("liveText").lastChild.textContent = "운영 종료";
+  $("hours").textContent = "2026.10.21 ~ 11.16 운영";
+  $("endedDemo").addEventListener("click", () => { location.href = "/?demo=1&dow=3"; });
 }
 loadLatest().then(() => {
   if (DEMO && Q.get("away")) maybeAskReturn(+Q.get("away") * 60000);     // 예시 화면 확인용: ?demo=1&away=10
