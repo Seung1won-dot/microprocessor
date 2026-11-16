@@ -1,0 +1,110 @@
+## 기록 시각: 2026-11-16 14:23:57 KST
+## 기기
+Raspberry Pi 5 Model B Rev 1.1
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+Linux 6.18.50+rpt-rpi-2712 aarch64
+## 가동 시간
+ 14:23:57 up 25 days, 22:45,  4 users,  load average: 7.33, 5.99, 4.66
+2026-10-21 15:38:15
+## 온도
+temp=63.7'C
+throttled=0x0
+## 메모리·저장공간
+               total        used        free      shared  buff/cache   available
+Mem:           7.9Gi       2.1Gi       4.0Gi       174Mi       2.1Gi       5.8Gi
+/dev/sda2        28G  8.1G   19G  31% /
+## 서비스
+active
+active
+NRestarts=1
+ActiveEnterTimestamp=Thu 2026-11-05 10:14:44 KST
+NRestarts=0
+ActiveEnterTimestamp=Wed 2026-10-28 17:40:40 KST
+## 프로그램 버전
+Python 3.13.5
+ModuleNotFoundError: No module named 'ultralytics'
+## 홈 폴더
+4096 Nov 16 14:23 .
+4096 Oct 21 17:59 ..
+5434 Oct 27 18:36 bench_ncnn.py
+679672 Oct 21 16:10 cam1_stream1_640.jpg
+683209 Oct 21 16:10 cam1_stream1_960.jpg
+318148 Oct 21 16:10 cam1_stream2_640.jpg
+321640 Oct 21 16:12 cam1_stream2_960.jpg
+318946 Oct 21 16:20 cam1_stream2_n640.jpg
+320080 Oct 21 16:20 cam1_stream2_n960.jpg
+318946 Oct 21 16:20 cam1_stream2_raw.jpg
+320170 Oct 21 16:20 cam1_stream2_s960.jpg
+2516 Oct 21 16:19 compare_models.py
+2610 Nov 5 10:16 compare_shadow.py
+4096 Oct 20 21:35 Desktop
+4096 Nov 16 08:00 detections
+4096 Oct 20 21:35 Documents
+4096 Oct 20 21:35 Downloads
+9738 Oct 28 17:33 live_page.html
+4096 Oct 20 21:35 Music
+2039 Oct 28 11:12 patch_cam_conf.py
+11492 Oct 28 17:33 patch_live.py
+2001 Oct 28 17:33 patch_push_state.py
+2398 Oct 21 16:04 patch_sd.py
+2744 Oct 27 19:17 patch_seat_ids.py
+3371 Oct 28 11:29 patch_seen.py
+2009 Oct 27 19:13 patch_snap.py
+1157 Oct 21 15:57 patch_stale.py
+3207 Oct 28 11:37 patch_temp.py
+2115 Oct 28 11:21 patch_zone6.py
+64988 Nov 5 10:14 people_count.py
+49169 Oct 28 17:33 people_count.py.bak_20261029
+58618 Oct 29 16:33 people_count.py.bak_20261105
+50458 Oct 29 15:08 people_count.py.bak_away1029
+34343 Oct 28 11:12 people_count.py.bak_conf
+33962 Oct 27 19:17 people_count.py.bak_ids
+36541 Oct 28 17:33 people_count.py.bak_live
+31035 Oct 27 18:44 people_count.py.bak_onnx
+34669 Oct 28 11:29 people_count.py.bak_seen
+33475 Oct 27 19:13 people_count.py.bak_snap
+17649 Oct 21 19:08 people_count.py.bak_tables
+35394 Oct 28 11:38 people_count.py.bak_temp
+50558 Oct 29 15:59 people_count.py.bak_theme1029
+58176 Oct 29 16:33 people_count.py.bak_theme2
+34623 Oct 28 11:21 people_count.py.bak_zone6
+7580751 Nov 16 14:23 people_log.csv
+326516 Oct 22 16:33 people_log.csv.bak_3cam
+4096 Oct 20 21:35 Pictures
+4096 Oct 20 21:35 Public
+2358 Oct 28 17:33 push_counts.py
+1917 Oct 28 17:33 push_counts.py.bak_state
+7 Nov 16 14:23 .push_offset
+4096 Nov 5 10:14 __pycache__
+4096 Nov 16 08:00 shadow
+650664 Nov 3 09:05 tables_history.jsonl
+13286 Nov 3 09:05 tables.json
+1718472 Nov 16 14:23 tables_log.jsonl
+6175 Nov 16 14:23 tables_state.json
+4096 Oct 20 21:35 Templates
+2276 Oct 21 16:10 test_cam1.py
+4096 Oct 20 21:35 Videos
+814 Oct 20 21:53 wifitest_iphone.txt
+56 Oct 21 15:36 .Xauthority
+7925 Nov 15 15:38 .xsession-errors
+3155 Oct 20 23:11 .xsession-errors.old
+4096 Oct 27 18:36 yolo11n_1280_ncnn_model
+11245540 Oct 21 16:32 yolo11n_1280.onnx
+4096 Oct 27 18:36 yolo11n_960_ncnn_model
+10951306 Oct 21 15:50 yolo11n_960.onnx
+10741265 Oct 20 22:23 yolo11n.onnx
+38261698 Oct 21 16:19 yolo11s_960.onnx
+4096 Nov 5 10:13 yolo26n_1280_ncnn_model
+10434284 Nov 5 10:13 yolo26n_1280.onnx
+1339 Oct 28 11:29 zone_bottom.py
+3605 Oct 29 14:25 zones_history.jsonl
+583 Oct 29 14:25 zones.json
+## 기록 파일 크기
+165M	/home/seung/detections
+13M	/home/seung/shadow
+7.3M	/home/seung/people_log.csv
+1.7M	/home/seung/tables_log.jsonl
+170432
+timestamp,cam1,cam2,cam3,cam4,total,total_raw,mode,interval
+2026-10-21 15:34:00,1,,,,1,1,normal,5.0
+2026-11-16 14:23:54,6,6,4,1,17,14,normal,5.0
